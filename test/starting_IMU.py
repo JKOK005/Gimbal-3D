@@ -25,8 +25,9 @@ def read_word_2c(adr):
 #Now wake the 6050 up as it starts in sleep mode
 bus.write_byte_data(address, power_mgmt_1, 0)
 
-#use the default scale to 2g
-SCALE = 65536.0/4
+#define scales
+SCALEa = 65536.0/4
+SCALEg = 32.8
 
 i=0
 while True:
@@ -37,12 +38,26 @@ while True:
 	accel_yout = read_word_2c(0x3d)
 	accel_zout = read_word_2c(0x3f)
 
-	accel_xout_scaled = accel_xout / SCALE
-	accel_yout_scaled = accel_yout / SCALE
-	accel_zout_scaled = accel_zout / SCALE	
+	accel_xout_scaled = accel_xout / SCALEa
+	accel_yout_scaled = accel_yout / SCALEa
+	accel_zout_scaled = accel_zout / SCALEa	
 
 	print "accel_xout: ", accel_xout, " scaled: %.3f" %accel_xout_scaled
 	print "accel_yout: ", accel_yout, " scaled: %.3f" %accel_yout_scaled
 	print "accel_zout: ", accel_zout, " scaled: %.3f" %accel_zout_scaled
+
+	print "------------"
+	print "gyroscope data, cnt =%d" %i
+	gyro_xout = read_word_2c(0x43)
+	gyro_yout = read_word_2c(0x45)
+	gyro_zout = read_word_2c(0x47)
+
+	gyro_xout_scaled = gyro_xout / SCALEg
+	gyro_yout_scaled = gyro_yout / SCALEg
+	gyro_zout_scaled = gyro_zout / SCALEg	
+
+	print "gyro_xout: ", gyro_xout, " scaled: %.3f" %gyro_xout_scaled
+	print "gyro_yout: ", gyro_yout, " scaled: %.3f" %gyro_yout_scaled
+	print "gyro_zout: ", gyro_zout, " scaled: %.3f" %gyro_zout_scaled
 
 	time.sleep(1)
