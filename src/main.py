@@ -30,7 +30,7 @@ Dependencies:
 User input:
 """
 
-import threading
+import threading 
 import time
 import numpy as np
 import IMU_math as IMU
@@ -44,7 +44,7 @@ class gimbal_driver(threading.Thread):
 		self.global_IMU_reading 	= {"reading": None, "val":{"type":np.ndarray, "len":6}, "lock":threading.Lock()}				# Global IMU state reading for gyro and accelerometer
 		self.global_state_gyro 		= {"reading": None, "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from Gyro readings
 		self.global_state_accel		= {"reading": None, "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from accelerometer readings
-		self.desired_state 			= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
+		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering 
 
 		self.smpl_time = 10		# 10 ms frequency of sampling time
@@ -178,24 +178,24 @@ class gimbal_driver(threading.Thread):
 		return state_new
 
 	def __get_state_from_accel(self, accel_reading):
-	"""
-	Performs integrative process based on sampling time 
-	"""
-		pass
+                """
+                Performs integrative process based on sampling time 
+                """
+                pass
 
 	def __get_state_from_kalman(self, z_k, u_k):
-	""" 
-	Handles the kalman filtering to obtain the true state of the gimbal 
-	Reference: http://blog.tkjelectronics.dk/2012/09/a-practical-approach-to-kalman-filter-and-how-to-implement-it/
+                """ 
+                Handles the kalman filtering to obtain the true state of the gimbal 
+                Reference: http://blog.tkjelectronics.dk/2012/09/a-practical-approach-to-kalman-filter-and-how-to-implement-it/
 
-	true_state is the state of the system at time K-1
-	est_state is the state of the system at time K, which is the measured state based on IMU readings
+                true_state is the state of the system at time K-1
+                est_state is the state of the system at time K, which is the measured state based on IMU readings
 
-	We want to perform the filtering to get the new true_state of the system at time K
+                We want to perform the filtering to get the new true_state of the system at time K
 
-	param: 	z_k: The measured state of the system at time K
-			u+k: The measured gyro readings at time K
-	"""
+                param: 	z_k: The measured state of the system at time K
+                                u+k: The measured gyro readings at time K
+                """
 		# IMu parameters
 		R_measure 	= 0.03	# Measurement noise variance for Roll / Pitch / Yaw
 		Q_angle	 	= 0.001	# Accelerometer bias in X / Y / Z
@@ -219,6 +219,6 @@ if __name__ == "__main__":
 	
 	while(input() != 'q'):
 		# Continue execution of programme unless told to stop
-		pass
+                pass
 
 	
