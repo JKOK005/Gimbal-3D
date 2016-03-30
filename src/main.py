@@ -33,7 +33,7 @@ User input:
 import threading 
 import time
 import numpy as np
-import copy.copy as cp
+import copy as cp
 import IMU_math as IMU 		# IMU library from IMU_math.py
 import plotting				# plotting library from plotting.py
 
@@ -48,8 +48,8 @@ class gimbal_driver(threading.Thread):
 		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering 
 
-		self.smpl_time = 10		# 10 ms frequency of sampling time
-		self.P_k_k = np.matrix([0,0,0],[0,0,0],[0,0,0])
+		self.smpl_time = 0.1		# 10 ms frequency of sampling time
+		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
 
 	def init_threads(self, obj):
 		"""
@@ -84,11 +84,11 @@ class gimbal_driver(threading.Thread):
 		''' Code to poll the IMU for various readings '''
 
 		# Spins until the main thread dies
-		while(thread.current_thread.is_alive()):
+		while(True):
 			prev_time = time.time()
 			update = IMU.get_IMU_reading()
-			print update
 			self.__access_global_var(glob=self.global_IMU_reading, update=update, thrd_name=threading.current_thread().getName())
+			print self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 		return
@@ -109,7 +109,7 @@ class gimbal_driver(threading.Thread):
 		rtype: None
 		"""
 		# Spins until the main thread dies
-		while(threading.current_thread.is_alive()):
+		while(True):
 			IMU_readings = self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			state_prev = self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
 			gyro_readings = IMU_readings[3:]; accel_readings = IMU_readings[:3]
@@ -135,7 +135,7 @@ class gimbal_driver(threading.Thread):
 		param: None
 		rtype: None
 		"""
-		while(threading.current_thread.is_alive()):
+		while(True):
 			pass
 		return		
 		# print("Signal update")
@@ -151,7 +151,7 @@ class gimbal_driver(threading.Thread):
 		"""
 		print("Desired state update")
 		print(threading.current_thread().getName())
-
+                
 	def __access_global_var(self, glob, update=None, thrd_name=None):
 		"""
 		Checks the target value of each call and will perform the necessary updating functions
@@ -219,9 +219,8 @@ if __name__ == "__main__":
 	launch_obj = gimbal_driver()
 	launch_obj.init_threads(launch_obj)
 	print("Press q to exit")
-	
-	while(input() != 'q'):
+	while(raw_input() != 'q'):
 		# Continue execution of programme unless told to stop
                 pass
-
+        
 	

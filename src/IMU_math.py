@@ -3,13 +3,13 @@ Library to handle all functionalities of the gyro
 This includes reading and integrating the reading
 """
 import numpy as np
-from np.linalg import inv
-import np.transpose as tps
+from numpy.linalg import inv
 import math
 import smbus
 import time
 
-bus = smbus.SMBus(1) 	# I2C port 1
+bus = None 	
+address = None
 
 def get_IMU_reading():
 	"""
@@ -27,9 +27,13 @@ def get_IMU_reading():
 	param: None
 	rtype: np.array of reading from (gryo_x, gryo_y, gryo_z, accel_x, accel_y, accel_z)
 	"""
+        global bus
+        global address
+	
 	power_mgmt_1 = 0x6b
 	power_mgmt_2 = 0x6c
-	address = 0x68 			# This is the address value via the i2cdetect command or chip user guide
+	bus = smbus.SMBus(1)            # I2C port 1
+	address = 0x68 		        # This is the address value via the i2cdetect command or chip user guide
 	SCALEa = 65536.0/4		# Scaling of accel and gyro readings 
 	SCALEg = 32.8
 
@@ -60,7 +64,7 @@ def __read_word(adr):
 	val = (high << 8) + low
 	return val
 
-def ____read_word_2c(adr):
+def __read_word_2c(adr):
 	val= __read_word(adr)
 	if (val >= 0x8000):
 		return - ((65535 - val) + 1)
@@ -137,9 +141,9 @@ def kalman_filter(F, B, R, Q, u_k, x_km1_km1, z_k):
 
 	x_k_km1 = F*x_km1_km1 + B*u_k	
 	y_k = z_k - H*x_k_km1			
-	P_k_km1 = F *P_km1_km1 *tps(F) + Q
-	S_k = H *P_k_km1 *tps(H) + R
-	K_k = P_k_km1 *tps(H) *inv(S_k)
+	P_k_km1 = F *P_km1_km1 *np.transpose(F) + Q
+	S_k = H *P_k_km1 *np.transpose(H) + R
+	K_k = P_k_km1 *np.transpose(H) *inv(S_k)
 	x_k_k = x_k_km1 + K_k *y_k
 	P_k_k = (np.identity(3) - K_k *H) *P_k_km1
 

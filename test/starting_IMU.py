@@ -25,9 +25,14 @@ def read_word_2c(adr):
 #Now wake the 6050 up as it starts in sleep mode
 bus.write_byte_data(address, power_mgmt_1, 0)
 
+#check mode of gyroscope and accelerometer
+mode_a=bus.read_byte_data(address, 0x1c)
+mode_g=bus.read_byte_data(address, 0x1b)
+print mode_a, mode_g
+
 #define scales
 SCALEa = 65536.0/4
-SCALEg = 32.8
+SCALEg = 131.0
 
 i=0
 while True:
@@ -60,4 +65,4 @@ while True:
 	print "gyro_yout: ", gyro_yout, " scaled: %.3f" %gyro_yout_scaled
 	print "gyro_zout: ", gyro_zout, " scaled: %.3f" %gyro_zout_scaled
 
-	time.sleep(1)
+	time.sleep(0.5)
