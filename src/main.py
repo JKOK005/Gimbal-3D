@@ -33,8 +33,9 @@ User input:
 import threading
 import time
 import numpy as np
-import IMU_math as IMU
 import copy.copy as cp
+import IMU_math as IMU 		# IMU library from IMU_math.py
+import plotting				# plotting library from plotting.py
 
 class gimbal_driver(threading.Thread):
 	"""
@@ -58,11 +59,11 @@ class gimbal_driver(threading.Thread):
 		rtype: None
 		""" 
 		self.IMU_poller_trd 	= threading.Thread(target=obj.update_IMU_reading, name="IMU_poller")
-		self.filtering_trd 		= threading.Thread(target=obj.update_true_state, name="filter_thread")
-		self.signal_trd 		= threading.Thread(target=obj.update_signal, name="signal_thread")
-		self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
+		# self.filtering_trd 		= threading.Thread(target=obj.update_true_state, name="filter_thread")
+		# self.signal_trd 		= threading.Thread(target=obj.update_signal, name="signal_thread")
+		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd, self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd]	#, self.filtering_trd, self.signal_trd, self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads
@@ -81,10 +82,12 @@ class gimbal_driver(threading.Thread):
 		rtype: None
 		"""
 		''' Code to poll the IMU for various readings '''
+
 		# Spins until the main thread dies
 		while(thread.current_thread.is_alive()):
 			prev_time = time.time()
 			update = IMU.get_IMU_reading()
+			print update
 			self.__access_global_var(glob=self.global_IMU_reading, update=update, thrd_name=threading.current_thread().getName())
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU

@@ -6,12 +6,66 @@ import numpy as np
 from np.linalg import inv
 import np.transpose as tps
 import math
+import smbus
+import time
+
+bus = smbus.SMBus(1) 	# I2C port 1
 
 def get_IMU_reading():
 	"""
 	Gets the IMU reading based on the circuit diagram
+	IMU used is MPU 9255. 
+	Please refer to: <link> for more details of our project
+
+	The IMU will comminucate with the raspberry via address 0x68 (for our case)
+	Based on data sheet, we write / read from the addresses:
+	Accelerometer: 0x3b - 0x3e 
+	Gyro: 0x43 - 0x48 
+
+	Once we read the data, we have to scale it based on the proper value
+
+	param: None
+	rtype: np.array of reading from (gryo_x, gryo_y, gryo_z, accel_x, accel_y, accel_z)
 	"""
-	pass
+	power_mgmt_1 = 0x6b
+	power_mgmt_2 = 0x6c
+	address = 0x68 			# This is the address value via the i2cdetect command or chip user guide
+	SCALEa = 65536.0/4		# Scaling of accel and gyro readings 
+	SCALEg = 32.8
+
+	#Now wake the MPU 9255 up as it starts in sleep mode
+	bus.write_byte_data(address, power_mgmt_1, 0)
+
+	accel_xout = __read_word_2c(0x3b)
+	accel_yout = __read_word_2c(0x3d)
+	accel_zout = __read_word_2c(0x3f)
+
+	accel_xout_scaled = accel_xout / SCALEa
+	accel_yout_scaled = accel_yout / SCALEa
+	accel_zout_scaled = accel_zout / SCALEa	
+
+	gyro_xout = __read_word_2c(0x43)
+	gyro_yout = __read_word_2c(0x45)
+	gyro_zout = __read_word_2c(0x47)
+
+	gyro_xout_scaled = gyro_xout / SCALEg
+	gyro_yout_scaled = gyro_yout / SCALEg
+	gyro_zout_scaled = gyro_zout / SCALEg	
+
+	return np.array([gyro_xout_scaled, gyro_yout_scaled, gyro_zout_scaled, accel_xout, accel_yout, accel_zout])
+
+def __read_word(adr):
+	high = bus.read_byte_data(address, adr)
+	low = bus.read_byte_data(address, adr+1)
+	val = (high << 8) + low
+	return val
+
+def ____read_word_2c(adr):
+	val= __read_word(adr)
+	if (val >= 0x8000):
+		return - ((65535 - val) + 1)
+	else:
+		return val
 
 def get_integrate_gyro(gyro_reading, smpl_time):
 	"""
@@ -23,7 +77,6 @@ def get_integrate_gyro(gyro_reading, smpl_time):
 
 	rtype:	numpy.ndarray type that is the result after performing integration 
 	"""
-
 	assert type(gyro_reading) is np.ndarray and type(smpl_time) is float
 	return gyro_reading*smpl_time
 
