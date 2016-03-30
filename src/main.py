@@ -51,6 +51,8 @@ class gimbal_driver(threading.Thread):
 		self.smpl_time = 0.1		# 10 ms frequency of sampling time
 		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
 
+		self.plot_object = plotting.visual()
+
 	def init_threads(self, obj):
 		"""
 		Initializes the necessary threads with the target functions
@@ -88,12 +90,14 @@ class gimbal_driver(threading.Thread):
 			prev_time = time.time()
 			update = IMU.get_IMU_reading()
 			self.__access_global_var(glob=self.global_IMU_reading, update=update, thrd_name=threading.current_thread().getName())
-			print self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
+			# print self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
+
+			# Visual of IMU readings
+			self.plot_object.update_IMU_reading(update)
+			self.plot_object.IMU_reading_plot()
 		return
-		# print("IMU update")
-		# print(threading.current_thread().getName())
 
 	def update_true_state(self):
 		"""
