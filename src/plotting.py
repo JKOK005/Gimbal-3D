@@ -1,5 +1,6 @@
 """
 Library to handling all plotting and visual functions
+We store the most recent xx values of the IMU as well as the computed true state value for plotting
 """
 
 import matplotlib.pyplot as plt
@@ -92,4 +93,33 @@ class visual():
 		fig.canvas.draw()
 		return
 
+	def true_state_plot(self):
+		plt.ion()
+		fig = plt.figure(1)
 
+		# Gyro_x reading
+		ax1 = fig.add_subplot(3,2,1)
+		ax1.plot(self.IMU_reading_gyro_x, 'b')
+
+		# Gyro_y reading
+		ax2 = fig.add_subplot(3,2,2)
+		ax2.plot(self.IMU_reading_gyro_y, 'r')
+
+		# Accel_z reading
+		ax3 = fig.add_subplot(3,2,3)
+		ax3.plot(self.IMU_reading_gyro_y, 'g')
+
+		# Accel_x reading
+		ax4 = fig.add_subplot(3,2,4)
+		ax4.plot(self.IMU_reading_accel_x, 'r')
+
+		# Accel_y reading
+		ax5 = fig.add_subplot(3,2,5)
+		ax5.plot(self.IMU_reading_accel_y, 'b')
+
+		# Accel_z reading
+		ax6 = fig.add_subplot(3,2,6)
+		ax6.plot(self.IMU_reading_accel_z, 'g')
+
+		fig.canvas.draw()
+		return

@@ -52,6 +52,7 @@ class gimbal_driver(threading.Thread):
 		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
 
 		self.plot_object = plotting.visual()
+		self.__capture_bias_readings()
 
 	def init_threads(self, obj):
 		"""
@@ -60,9 +61,9 @@ class gimbal_driver(threading.Thread):
 		param: obj: gimbal_driver object
 		rtype: None
 		""" 
-		self.IMU_poller_trd 	= threading.Thread(target=obj.update_IMU_reading, name="IMU_poller")
+		self.IMU_poller_trd 		= threading.Thread(target=obj.update_IMU_reading, name="IMU_poller")
 		# self.filtering_trd 		= threading.Thread(target=obj.update_true_state, name="filter_thread")
-		# self.signal_trd 		= threading.Thread(target=obj.update_signal, name="signal_thread")
+		# self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
 		self.thread_collector 	= [self.IMU_poller_trd]	#, self.filtering_trd, self.signal_trd, self.desired_state_trd]
@@ -145,6 +146,10 @@ class gimbal_driver(threading.Thread):
 		# print("Signal update")
 		# print(threading.current_thread().getName())
 
+	def get_IMU_bias(self):
+		return [self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, \
+				self.accel_bias_x,  self.accel_bias_y, self.accel_bias_z]
+
 	def update_desired_state(self):
 		"""
 		Function updates the desired state of the gimbal by reading inputs and updating desired_state variable
@@ -219,12 +224,51 @@ class gimbal_driver(threading.Thread):
 
 		return IMU.kalman_filter(F,B,R_measure,Q_matrix,u_k,x_km1_km1,z_k)
 
+	def __capture_bias_readings(self):
+		"""
+		Function ran before initialization to capture the bias of the system
+		We want to sample the readings of 3DOF of acceleration and angular velocity to get their biases
+		To-be-implemented: Save the current data so that the user can preload the bias without calibrating again when needed
+		"""
+		print("Starting to calibrate the device.")
+		print("Please place the device horizontally")
+		time.sleep(2)						# For the user to get ready
+		print("Calibration begins now")
+		
+		smpl_size = 20
+		gyro_bias_mean_x 	= []
+		gyro_bias_mean_y 	= []
+		gyro_bias_mean_z 	= []
+		accel_bias_mean_x	= []
+		accel_bias_mean_y 	= []
+		accel_bias_mean_z 	= []
+
+		for i in range(smpl_size):
+			reading = IMU.get_IMU_reading()
+			gyro_bias_mean_x.append(reading[0])
+			gyro_bias_mean_y.append(reading[1])
+			gyro_bias_mean_z.append(reading[2])
+			accel_bias_mean_x.append(reading[3])
+			accel_bias_mean_y.append(reading[4])
+			accel_bias_mean_z.append(reading[5] -1)		# Z is by default supposed to be 1
+			time.sleep(0.1)
+
+		self.gyro_bias_x 	= np.mean(gyro_bias_mean_x)
+		self.gyro_bias_y 	= np.mean(gyro_bias_mean_y)
+		self.gyro_bias_z 	= np.mean(gyro_bias_mean_z)
+		self.accel_bias_x 	= np.mean(accel_bias_mean_x)
+		self.accel_bias_y 	= np.mean(accel_bias_mean_y)
+		self.accel_bias_z 	= np.mean(accel_bias_mean_z)
+
+		print("calibration complete. Operation start!")
+		return
+
 if __name__ == "__main__":
 	launch_obj = gimbal_driver()
 	launch_obj.init_threads(launch_obj)
 	print("Press q to exit")
 	while(raw_input() != 'q'):
 		# Continue execution of programme unless told to stop
-                pass
+        pass
         
 	

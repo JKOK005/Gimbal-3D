@@ -27,8 +27,8 @@ def get_IMU_reading():
 	param: None
 	rtype: np.array of reading from (gryo_x, gryo_y, gryo_z, accel_x, accel_y, accel_z)
 	"""
-        global bus
-        global address
+    global bus
+    global address
 	
 	power_mgmt_1 = 0x6b
 	power_mgmt_2 = 0x6c
