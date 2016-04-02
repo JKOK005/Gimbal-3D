@@ -62,11 +62,11 @@ class gimbal_driver(threading.Thread):
 		rtype: None
 		""" 
 		self.IMU_poller_trd 		= threading.Thread(target=obj.update_IMU_reading, name="IMU_poller")
-		# self.filtering_trd 		= threading.Thread(target=obj.update_true_state, name="filter_thread")
+		self.filtering_trd 			= threading.Thread(target=obj.update_true_state, name="filter_thread")
 		# self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd]	#, self.filtering_trd, self.signal_trd, self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd]#, self.signal_trd, self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads
@@ -96,8 +96,8 @@ class gimbal_driver(threading.Thread):
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
 			# Visual of IMU readings
-			self.plot_object.update_IMU_reading(update)
-			self.plot_object.IMU_reading_plot()
+			# self.plot_object.update_IMU_reading(update)
+			# self.plot_object.IMU_reading_plot()
 		return
 
 	def update_true_state(self):
@@ -122,11 +122,11 @@ class gimbal_driver(threading.Thread):
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev)		# Performs integration to get true state from gyro
 			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
 			est_state = math.mean(gyro_state, accel_state)							# Take the average state
-			x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
+			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
 
 			self.__access_global_var(glob=self.global_state_gyro, update=gyro_state, thrd_name=threading.current_thread().getName())
 			self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
-			self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
+			# self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
 			self.P_k_k = P_update
 		return
 		# print("True state update")
@@ -260,7 +260,7 @@ class gimbal_driver(threading.Thread):
 		self.accel_bias_y 	= np.mean(accel_bias_mean_y)
 		self.accel_bias_z 	= np.mean(accel_bias_mean_z)
 
-                print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
+        print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
 		print("calibration complete. Operation start!")
 		return
 
