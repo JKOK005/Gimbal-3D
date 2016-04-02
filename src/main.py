@@ -43,8 +43,8 @@ class gimbal_driver(threading.Thread):
 	"""
 	def __init__(self):
 		self.global_IMU_reading 	= {"reading": None, "val":{"type":np.ndarray, "len":6}, "lock":threading.Lock()}				# Global IMU state reading for gyro and accelerometer
-		self.global_state_gyro 		= {"reading": None, "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from Gyro readings
-		self.global_state_accel		= {"reading": None, "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from accelerometer readings
+		self.global_state_gyro 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from Gyro readings
+		self.global_state_accel		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from accelerometer readings
 		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering 
 
@@ -115,11 +115,14 @@ class gimbal_driver(threading.Thread):
 		"""
 		# Spins until the main thread dies
 		while(True):
+                        prev_time = time.time()
 			IMU_readings = self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
-			state_prev = self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
-			gyro_readings = IMU_readings[3:]; accel_readings = IMU_readings[:3]
-
+			# state_prev = self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
+			state_prev = self.__access_global_var(glob=self.global_gyro, thrd_name=threading.current_thread().getName())
+			gyro_readings = IMU_readings[:3]; accel_readings = IMU_readings[3:]
+			
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev)		# Performs integration to get true state from gyro
+                        print(gyro_state)
 			# accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
 			# est_state = math.mean(gyro_state, accel_state)							# Take the average state
 			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
@@ -128,10 +131,12 @@ class gimbal_driver(threading.Thread):
 			# self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
 			# self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
 			# self.P_k_k = P_update
-
+                        run_time = time.time() - prev_time
+			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
+                        
 			# Visual of Gyro readings
-			self.plot_object.update_measured_state(gyro_state)
-			self.plot_object.measured_reading_plot(gyro_state)
+			# self.plot_object.update_measured_state(gyro_state)
+			# self.plot_object.measured_state_plot()
 		return
 		# print("True state update")
 		# print(threading.current_thread().getName())
@@ -249,7 +254,6 @@ class gimbal_driver(threading.Thread):
 
 		for i in range(smpl_size):
 			reading = IMU.get_IMU_reading()
-			print(reading)
 			gyro_bias_mean_x.append(reading[0])
 			gyro_bias_mean_y.append(reading[1])
 			gyro_bias_mean_z.append(reading[2])
@@ -265,7 +269,7 @@ class gimbal_driver(threading.Thread):
 		self.accel_bias_y 	= np.mean(accel_bias_mean_y)
 		self.accel_bias_z 	= np.mean(accel_bias_mean_z)
 
-        print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
+                # print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
 		print("calibration complete. Operation start!")
 		return
 

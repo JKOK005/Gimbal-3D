@@ -79,19 +79,19 @@ class visual():
 		ax1 = fig.add_subplot(3,2,1)
 		ax1.plot(self.IMU_reading_gyro_x, 'b')
 
-		Gyro_y reading
+		# Gyro_y reading
 		ax2 = fig.add_subplot(3,2,2)
 		ax2.plot(self.IMU_reading_gyro_y, 'r')
 
-		Accel_z reading
+		# Accel_z reading
 		ax3 = fig.add_subplot(3,2,3)
 		ax3.plot(self.IMU_reading_gyro_y, 'g')
 
-		Accel_x reading
+		# Accel_x reading
 		ax4 = fig.add_subplot(3,2,4)
 		ax4.plot(self.IMU_reading_accel_x, 'r')
 
-		Accel_y reading
+		# Accel_y reading
 		ax5 = fig.add_subplot(3,2,5)
 		ax5.plot(self.IMU_reading_accel_y, 'b')
 
@@ -100,7 +100,7 @@ class visual():
 		ax6.plot(self.IMU_reading_accel_z, 'g')
 
 		fig.canvas.draw()
-		time.sleep(0.1)
+		time.sleep(0.01)
 		plt.clf()
 		return
 
@@ -121,7 +121,7 @@ class visual():
 		ax3.plot(self.true_state_z, 'g')
 
 		fig.canvas.draw()
-		time.sleep(0.1)
+		time.sleep(0.01)
 		plt.clf()
 		return
 
@@ -131,17 +131,17 @@ class visual():
 
 		# Gyro_x reading
 		ax1 = fig.add_subplot(3,1,1)
-		ax1.plot(self.true_state_x, 'b')
+		ax1.plot(self.measured_state_x, 'b')
 
 		# Gyro_y reading
 		ax2 = fig.add_subplot(3,1,2)
-		ax2.plot(self.true_state_y, 'r')
+		ax2.plot(self.measured_state_y, 'r')
 
 		# Accel_z reading
 		ax3 = fig.add_subplot(3,1,3)
-		ax3.plot(self.true_state_z, 'g')
+		ax3.plot(self.measured_state_z, 'g')
 
 		fig.canvas.draw()
-		time.sleep(0.1)
+		time.sleep(0.01)
 		plt.clf()
 		return
