@@ -232,7 +232,7 @@ class gimbal_driver(threading.Thread):
 		"""
 		print("Starting to calibrate the device.")
 		print("Please place the device horizontally")
-		time.sleep(2)						# For the user to get ready
+		time.sleep(5)						# For the user to get ready
 		print("Calibration begins now")
 		
 		smpl_size = 20
@@ -245,6 +245,7 @@ class gimbal_driver(threading.Thread):
 
 		for i in range(smpl_size):
 			reading = IMU.get_IMU_reading()
+			print(reading)
 			gyro_bias_mean_x.append(reading[0])
 			gyro_bias_mean_y.append(reading[1])
 			gyro_bias_mean_z.append(reading[2])

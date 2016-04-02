@@ -35,7 +35,7 @@ def get_IMU_reading():
 	bus = smbus.SMBus(1)            # I2C port 1
 	address = 0x68 		        # This is the address value via the i2cdetect command or chip user guide
 	SCALEa = 65536.0/4		# Scaling of accel and gyro readings 
-	SCALEg = 32.8
+	SCALEg = 131.0
 
 	#Now wake the MPU 9255 up as it starts in sleep mode
 	bus.write_byte_data(address, power_mgmt_1, 0)
