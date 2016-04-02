@@ -120,14 +120,18 @@ class gimbal_driver(threading.Thread):
 			gyro_readings = IMU_readings[3:]; accel_readings = IMU_readings[:3]
 
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev)		# Performs integration to get true state from gyro
-			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
-			est_state = math.mean(gyro_state, accel_state)							# Take the average state
+			# accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
+			# est_state = math.mean(gyro_state, accel_state)							# Take the average state
 			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
 
 			self.__access_global_var(glob=self.global_state_gyro, update=gyro_state, thrd_name=threading.current_thread().getName())
-			self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
+			# self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
 			# self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
-			self.P_k_k = P_update
+			# self.P_k_k = P_update
+
+			# Visual of Gyro readings
+			self.plot_object.update_measured_state(gyro_state)
+			self.plot_object.measured_reading_plot(gyro_state)
 		return
 		# print("True state update")
 		# print(threading.current_thread().getName())

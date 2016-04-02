@@ -16,6 +16,10 @@ class visual():
 		self.IMU_reading_accel_y 	= []
 		self.IMU_reading_accel_z 	= []
 
+		self.measured_state_x		= []
+		self.measured_state_y		= []
+		self.measured_state_z		= []
+
 		self.true_state_x 			= []		# Tracks the individual true state of the system based on Kalman filtering as a list of numpy arrays
 		self.true_state_y 			= []
 		self.true_state_z 			= []
@@ -54,6 +58,19 @@ class visual():
 		self.true_state_y.append(tmp[1])
 		self.true_state_z.append(tmp[2])
 
+	def update_measured_state(self, update):
+		tmp = update.tolist()
+
+		if len(self.true_state_x) == self.length_limit:
+			# Delete first element before updating list
+			del self.measured_state_x[0]
+			del self.measured_state_y[0]
+			del self.measured_state_z[0]
+
+		self.measured_state_x.append(tmp[0])
+		self.measured_state_y.append(tmp[1])
+		self.measured_state_z.append(tmp[2])
+
 	def IMU_reading_plot(self):
 		plt.ion()
 		fig = plt.figure(1)
@@ -88,6 +105,27 @@ class visual():
 		return
 
 	def true_state_plot(self):
+		plt.ion()
+		fig = plt.figure(1)
+
+		# Gyro_x reading
+		ax1 = fig.add_subplot(3,1,1)
+		ax1.plot(self.true_state_x, 'b')
+
+		# Gyro_y reading
+		ax2 = fig.add_subplot(3,1,2)
+		ax2.plot(self.true_state_y, 'r')
+
+		# Accel_z reading
+		ax3 = fig.add_subplot(3,1,3)
+		ax3.plot(self.true_state_z, 'g')
+
+		fig.canvas.draw()
+		time.sleep(0.1)
+		plt.clf()
+		return
+
+	def measured_state_plot(self):
 		plt.ion()
 		fig = plt.figure(1)
 
