@@ -5,6 +5,7 @@ We store the most recent xx values of the IMU as well as the computed true state
 
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 class visual():
 	def __init__(self):
@@ -71,26 +72,28 @@ class visual():
 		ax1.plot(self.IMU_reading_gyro_x, 'b')
 
 		# Gyro_y reading
-		ax2 = fig.add_subplot(3,2,2)
-		ax2.plot(self.IMU_reading_gyro_y, 'r')
+		#ax2 = fig.add_subplot(3,2,2)
+		#ax2.plot(self.IMU_reading_gyro_y, 'r')
 
 		# Accel_z reading
-		ax3 = fig.add_subplot(3,2,3)
-		ax3.plot(self.IMU_reading_gyro_y, 'g')
+		#ax3 = fig.add_subplot(3,2,3)
+		#ax3.plot(self.IMU_reading_gyro_y, 'g')
 
 		# Accel_x reading
-		ax4 = fig.add_subplot(3,2,4)
-		ax4.plot(self.IMU_reading_accel_x, 'r')
+		#ax4 = fig.add_subplot(3,2,4)
+		#ax4.plot(self.IMU_reading_accel_x, 'r')
 
 		# Accel_y reading
-		ax5 = fig.add_subplot(3,2,5)
-		ax5.plot(self.IMU_reading_accel_y, 'b')
+		#ax5 = fig.add_subplot(3,2,5)
+		#ax5.plot(self.IMU_reading_accel_y, 'b')
 
 		# Accel_z reading
 		ax6 = fig.add_subplot(3,2,6)
 		ax6.plot(self.IMU_reading_accel_z, 'g')
 
 		fig.canvas.draw()
+		time.sleep(0.1)
+		plt.clf()
 		return
 
 	def true_state_plot(self):

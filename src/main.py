@@ -260,6 +260,7 @@ class gimbal_driver(threading.Thread):
 		self.accel_bias_y 	= np.mean(accel_bias_mean_y)
 		self.accel_bias_z 	= np.mean(accel_bias_mean_z)
 
+                print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
 		print("calibration complete. Operation start!")
 		return
 
@@ -269,6 +270,6 @@ if __name__ == "__main__":
 	print("Press q to exit")
 	while(raw_input() != 'q'):
 		# Continue execution of programme unless told to stop
-        pass
+                pass
         
 	

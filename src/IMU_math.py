@@ -27,8 +27,8 @@ def get_IMU_reading():
 	param: None
 	rtype: np.array of reading from (gryo_x, gryo_y, gryo_z, accel_x, accel_y, accel_z)
 	"""
-    global bus
-    global address
+        global bus
+        global address
 	
 	power_mgmt_1 = 0x6b
 	power_mgmt_2 = 0x6c
@@ -56,7 +56,7 @@ def get_IMU_reading():
 	gyro_yout_scaled = gyro_yout / SCALEg
 	gyro_zout_scaled = gyro_zout / SCALEg	
 
-	return np.array([gyro_xout_scaled, gyro_yout_scaled, gyro_zout_scaled, accel_xout, accel_yout, accel_zout])
+	return np.array([gyro_xout_scaled, gyro_yout_scaled, gyro_zout_scaled, accel_xout_scaled, accel_yout_scaled, accel_zout_scaled])
 
 def __read_word(adr):
 	high = bus.read_byte_data(address, adr)
