@@ -89,7 +89,7 @@ class gimbal_driver(threading.Thread):
 		# Spins until the main thread dies
 		while(True):
 			prev_time = time.time()
-			update = IMU.get_IMU_reading()
+			update = IMU.get_IMU_reading() - self.IMU_bias
 			self.__access_global_var(glob=self.global_IMU_reading, update=update, thrd_name=threading.current_thread().getName())
 			# print self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			run_time = time.time() - prev_time
@@ -154,10 +154,6 @@ class gimbal_driver(threading.Thread):
 		return		
 		# print("Signal update")
 		# print(threading.current_thread().getName())
-
-	def get_IMU_bias(self):
-		return [self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, \
-				self.accel_bias_x,  self.accel_bias_y, self.accel_bias_z]
 
 	def update_desired_state(self):
 		"""
@@ -262,12 +258,14 @@ class gimbal_driver(threading.Thread):
 			accel_bias_mean_z.append(reading[5] -1)		# Z is by default supposed to be 1
 			time.sleep(0.1)
 
-		self.gyro_bias_x 	= np.mean(gyro_bias_mean_x)
-		self.gyro_bias_y 	= np.mean(gyro_bias_mean_y)
-		self.gyro_bias_z 	= np.mean(gyro_bias_mean_z)
-		self.accel_bias_x 	= np.mean(accel_bias_mean_x)
-		self.accel_bias_y 	= np.mean(accel_bias_mean_y)
-		self.accel_bias_z 	= np.mean(accel_bias_mean_z)
+		gyro_bias_x 	= np.mean(gyro_bias_mean_x)
+		gyro_bias_y 	= np.mean(gyro_bias_mean_y)
+		gyro_bias_z 	= np.mean(gyro_bias_mean_z)
+		accel_bias_x 	= np.mean(accel_bias_mean_x)
+		accel_bias_y 	= np.mean(accel_bias_mean_y)
+		accel_bias_z 	= np.mean(accel_bias_mean_z)
+
+		self.IMU_bias = np.array([gyro_bias_x, gyro_bias_y, gyro_bias_z, accel_bias_x, accel_bias_mean_y, accel_bias_mean_z])
 
                 # print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
 		print("calibration complete. Operation start!")
