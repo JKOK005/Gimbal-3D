@@ -118,7 +118,7 @@ class gimbal_driver(threading.Thread):
                         prev_time = time.time()
 			IMU_readings = self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			# state_prev = self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
-			state_prev = self.__access_global_var(glob=self.global_gyro, thrd_name=threading.current_thread().getName())
+			state_prev = self.__access_global_var(glob=self.global_state_gyro, thrd_name=threading.current_thread().getName())
 			gyro_readings = IMU_readings[:3]; accel_readings = IMU_readings[3:]
 			
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev)		# Performs integration to get true state from gyro
