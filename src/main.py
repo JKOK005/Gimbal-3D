@@ -48,7 +48,7 @@ class gimbal_driver(threading.Thread):
 		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering 
 
-		self.smpl_time = 0.1		# 10 ms frequency of sampling time
+		self.smpl_time = 0.05		# 10 ms frequency of sampling time
 		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
 
 		self.plot_object = plotting.visual()
@@ -78,6 +78,7 @@ class gimbal_driver(threading.Thread):
 		"""
 		Function will poll the IMU for readings from the Gyro and Accelerometer
 		This will update the global_IMU_reading variable in the form np.array([AccX, AccY, AccZ, OmegaX, OmegaY, OmegaZ])
+		IMU bias is factored in during the update process
 
 		global_IMU_reading -> Read and update variable
 
@@ -138,8 +139,6 @@ class gimbal_driver(threading.Thread):
 			# self.plot_object.update_measured_state(gyro_state)
 			# self.plot_object.measured_state_plot()
 		return
-		# print("True state update")
-		# print(threading.current_thread().getName())
 
 	def update_signal(self):
 		"""
@@ -152,8 +151,6 @@ class gimbal_driver(threading.Thread):
 		while(True):
 			pass
 		return		
-		# print("Signal update")
-		# print(threading.current_thread().getName())
 
 	def update_desired_state(self):
 		"""
@@ -241,7 +238,7 @@ class gimbal_driver(threading.Thread):
 		print("Calibration begins now")
 		
 		smpl_size = 100
-		slp_time = 0.1
+		slp_time = 0.01
 
 		gyro_bias_mean_x 	= []
 		gyro_bias_mean_y 	= []
@@ -257,25 +254,22 @@ class gimbal_driver(threading.Thread):
 			gyro_bias_mean_z.append(reading[2])
 			accel_bias_mean_x.append(reading[3])
 			accel_bias_mean_y.append(reading[4])
-			accel_bias_mean_z.append(reading[5] -1)				# Z is by default supposed to be 1
+			accel_bias_mean_z.append(reading[5] -1)		# Z is by default supposed to be 1
 			time.sleep(slp_time)
 
-		gyro_bias_x 	= np.mean(gyro_bias_mean_x)             # Calculates the mean bias
+		gyro_drift_rate_x 	= (gyro_bias_mean_x[-1] - gyro_bias_mean_x[0]) / (slp_time*smpl_size)    # Mean rate of drift in deg s^-2
+		gyro_drift_rate_y 	= (gyro_bias_mean_y[-1] - gyro_bias_mean_y[0]) / (slp_time*smpl_size)
+		gyro_drift_rate_z 	= (gyro_bias_mean_z[-1] - gyro_bias_mean_z[0]) / (slp_time*smpl_size)
+
+		gyro_bias_x 	= np.mean(gyro_bias_mean_x)             # Calculates the mean bias after removal of drift 
 		gyro_bias_y 	= np.mean(gyro_bias_mean_y)
 		gyro_bias_z 	= np.mean(gyro_bias_mean_z)
 		accel_bias_x 	= np.mean(accel_bias_mean_x)
 		accel_bias_y 	= np.mean(accel_bias_mean_y)
 		accel_bias_z 	= np.mean(accel_bias_mean_z)
 
-		gyro_drift_rate_x 	= np.sum(np.diff(gyro_bias_mean_x)) / (slp_time*smpl_size)    # Mean rate of drift in deg s^-2
-		gyro_drift_rate_y 	= np.sum(np.diff(gyro_bias_mean_y)) / (slp_time*smpl_size)
-		gyro_drift_rate_z 	= np.sum(np.diff(gyro_bias_mean_z)) / (slp_time*smpl_size)
-
                 self.IMU_bias = np.array([gyro_bias_x, gyro_bias_y, gyro_bias_z, accel_bias_x, accel_bias_y, accel_bias_z])
 		self.IMU_drift_rate = np.array([gyro_drift_rate_x, gyro_drift_rate_y, gyro_drift_rate_z])
-		print(self.IMU_drift_rate*self.smpl_time)
-		raw_input()
-                # print(self.gyro_bias_x, self.gyro_bias_y, self.gyro_bias_z, self.accel_bias_x, self.accel_bias_y, self.accel_bias_z)
 		print("calibration complete. Operation start!")
 		return
 

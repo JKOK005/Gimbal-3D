@@ -24,7 +24,7 @@ class visual():
 		self.true_state_y 			= []
 		self.true_state_z 			= []
 
-		self.length_limit = 20				# Holds a total of xx readings
+		self.length_limit = 5				# Holds a total of xx readings
 
 	def update_IMU_reading(self, update):
 		tmp = update.tolist()
@@ -61,7 +61,7 @@ class visual():
 	def update_measured_state(self, update):
 		tmp = update.tolist()
 
-		if len(self.true_state_x) == self.length_limit:
+		if len(self.measured_state_x) == self.length_limit:
 			# Delete first element before updating list
 			del self.measured_state_x[0]
 			del self.measured_state_y[0]
