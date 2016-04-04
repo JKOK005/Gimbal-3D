@@ -87,8 +87,23 @@ def get_integrate_gyro(gyro_reading, smpl_time):
 def get_state_accel(accel_reading):
 	"""
 	Gets the state of the system based on accelerometer readings
+	The formula used are:
+		roll 	= atan(A_x / sqrt(A_y^2 + A_z^2))
+		pitch 	= atan(A_y / sqrt(A_x^2 + A_z^2))
+	** The limitation of the accelerometer is that it cannot calculate yaw rotations because that axis corresponds with gravity
+
+	param: accel_reading -> numpy.nparray type that is the reading of the accelerometer
+
+	rtype: numpy.nparray type that is represents the tile angles in (pitch roll)
 	"""
-	pass
+	from math import atan
+	assert type(accel_reading) is np.ndarray
+	A_x = accel_reading[0]; A_y = accel_reading[1]; A_z = accel_reading[2]
+
+	roll = atan(A_x / sqrt(A_y^2 + A_z^2))
+	pitch = atan(A_y / sqrt(A_x^2 + A_z^2))
+
+	return np.array([pitch, roll])
 
 def kalman_filter(F, B, R, Q, u_k, x_km1_km1, z_k):
 	"""
