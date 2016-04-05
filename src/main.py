@@ -124,7 +124,7 @@ class gimbal_driver(threading.Thread):
 			
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev_gryo)		# Performs integration to get true state from gyro
 			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
-                        print(gyro_state, accel_state)
+                        print(gyro_state*2*3.142/360, accel_state)
 			# est_state = math.mean(gyro_state, accel_state)							# Take the average state
 			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
 
@@ -195,7 +195,7 @@ class gimbal_driver(threading.Thread):
                 """
                 Performs integrative process based on sampling time 
                 """
-                pass
+                return IMU.get_state_accel(accel_reading)
 
 	def __get_state_from_kalman(self, z_k, u_k):
                 """ 
