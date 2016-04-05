@@ -59,8 +59,8 @@ class gimbal_driver(threading.Thread):
 		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering (rad)
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering (rad)
 
-		self.smpl_time = 0.01		# 1 ms frequency of sampling time
-		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
+		self.smpl_time = 0.01												# 1 ms frequency of sampling time
+		self.P_k_k = [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
 
 		self.plot_object = plotting.visual()
 		self.__capture_bias_readings()
@@ -137,13 +137,13 @@ class gimbal_driver(threading.Thread):
 			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
 			est_state = (gyro_state*2*pi/360 + accel_state)/ 2							# Take the average state
 			est_state[-1] *= 2                                                              # Yaw reading follows gyro
-	                print(gyro_state*2*pi/360, est_state)
-			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
+
+			x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=2*pi*gyro_readings/ 360)			# Apply kalman filtering
 
 			self.__access_global_var(glob=self.global_state_gyro, update=gyro_state, thrd_name=threading.current_thread().getName())
 			self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
-			# self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
-			# self.P_k_k = P_update
+			self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
+			self.P_k_k = P_update
                         run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
                         
@@ -219,8 +219,8 @@ class gimbal_driver(threading.Thread):
 
                 We want to perform the filtering to get the new true_state of the system at time K
 
-                param: 	z_k: The measured state of the system at time K
-                                u+k: The measured gyro readings at time K
+                param: 	est_state: The measured state of the system at time K
+                                u_k: The measured gyro readings at time K
                 """
 		# IMu parameters
 		R_measure 	= 0.03	# Measurement noise variance for Roll / Pitch / Yaw
@@ -233,10 +233,12 @@ class gimbal_driver(threading.Thread):
 
 		"""Start Kalman filtering from here onwards"""
 
-		Q_matrix 	= np.matrix([Q_angle,0],[0,Q_gyro])
-		x_km1_km1 	= self.__access_global_var(glob=self.global_true_state, update=None, thrd_name=None)
+		Q_matrix 			= np.matrix([Q_angle,0],[0,Q_gyro])
+		drift 				= self.IMU_drift_rate
+		true_state_km1 		= self.__access_global_var(glob=self.global_true_state, update=None, thrd_name=None)
+		P_km1_km1 			= self.P_k_k
 
-		return IMU.kalman_filter(F,B,R_measure,Q_matrix,u_k,x_km1_km1,z_k)
+		return IMU.kalman_filter(F, B, R_measure, Q_matrix, u_k, drift, true_state_km1, z_k, P_km1_km1)
 
 	def __capture_bias_readings(self):
 		"""
