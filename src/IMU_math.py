@@ -5,9 +5,8 @@ This includes reading and integrating the reading
 import numpy as np
 from numpy.linalg import inv
 import math
-#import smbus
+import smbus
 import time
-import IPython
 
 bus = None 	
 address = None
@@ -146,27 +145,26 @@ def kalman_filter(F, B, R, Q, u_k, drift, true_state_km1, z_k, P_km1_km1):
 	Calculate the error covariance matrix at time k 
 	>>> P_k_k = (I - K_k *H) *P_k_km1
 
-	param: 	F: State transition matrix 										- 2 x 2
-			B: Mapping matrix for control input								- 2 x 1
-			R: Measurement covariance matrix 								- 1 x 1			
-			Q: Noise covariance matrix 										- 2 x 2
-			vel: measured angular velocity at time k 						- 1 x 3
-			drift: measured drift of gyro 									- 1 x 3
-			true_state_km1: The true state of the system at time k-1		- 1 x 3
-			z_k: The measured state of the system at time k 			- 1 x 3
-			P_k_km1: The error covariance matrix at time k-1			- [2 x 2, 2 x 2, 2 x 2]
+	param: 	F: State transition matrix 						- 2 x 2
+		B: Mapping matrix for control input					- 2 x 1
+		R: Measurement covariance matrix 					- 1 x 1			
+		Q: Noise covariance matrix 						- 2 x 2
+		vel: measured angular velocity at time k 				- 1 x 3
+		drift: measured drift of gyro 						- 1 x 3
+		true_state_km1: The true state of the system at time k-1		- 1 x 3
+		z_k: The measured state of the system at time k 			- 1 x 3
+		P_k_km1: The error covariance matrix at time k-1			- [2 x 2, 2 x 2, 2 x 2]
 
 	rtype: 	true_state_k: The true state of the system at time k 			- 1 x 3
 			P_k_k_all: The collective error covariance matrix at time k 	- [2 x 2, 2 x 2, 2 x 2]
 	"""
-	H = np.matrix([1, 0])			# Maps true state to measured reading
-
+	H               = np.matrix([1, 0])			# Maps true state to measured reading
 	x_km1_km1 	= [np.transpose(np.matrix(i)) for i in zip(true_state_km1, drift)]
-	true_state_k = np.array([])
-	P_k_k_all = []
+	true_state_k    = np.array([])
+	P_k_k_all       = []
 
 	for j in range(3):
-		x_k_km1 	= F *x_km1_km1[j] + B *u_k[j]	
+                x_k_km1 	= F *x_km1_km1[j] + B *u_k[j]	
 		y_k 		= z_k[j] - H *x_k_km1			
 		P_k_km1 	= F *P_km1_km1[j] *np.transpose(F) + Q
 		S_k 		= H *P_k_km1 *np.transpose(H) + R
@@ -174,10 +172,9 @@ def kalman_filter(F, B, R, Q, u_k, drift, true_state_km1, z_k, P_km1_km1):
 		x_k_k 		= x_k_km1 + K_k *y_k
 		P_k_k 		= (np.identity(2) - K_k *H) *P_k_km1
 		
-		true_state_k = np.append(true_state_k, x_k_k[0])			# Appends mean position
+		true_state_k = np.append(true_state_k, x_k_k[0])		# Appends mean position
 		P_k_k_all.append(P_k_k)						# Appends error covariance matrix
-	return
-	#return true_state_k, P_k_k_all
+	return true_state_k, P_k_k_all
 
 if __name__ == "__main__":
 	# To test the Kalman filter
