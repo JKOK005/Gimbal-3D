@@ -46,19 +46,20 @@ import numpy as np
 import copy as cp
 import IMU_math as IMU 		# IMU library from IMU_math.py
 import plotting				# plotting library from plotting.py
+from math import pi
 
 class gimbal_driver(threading.Thread):
 	"""
 	gimbal_driver class that the user calls to initialize all necessary threads and start the operation.
 	"""
 	def __init__(self):
-		self.global_IMU_reading 	= {"reading": None, "val":{"type":np.ndarray, "len":6}, "lock":threading.Lock()}				# Global IMU state reading for gyro and accelerometer
-		self.global_state_gyro 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from Gyro readings
-		self.global_state_accel		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}				# Global gimbal state based only from accelerometer readings
-		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering 
-		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering 
+		self.global_IMU_reading 	= {"reading": None, "val":{"type":np.ndarray, "len":6}, "lock":threading.Lock()}	        # Global IMU state reading for gyro and accelerometer
+		self.global_state_gyro 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global gimbal state based only from Gyro readings (deg)
+		self.global_state_accel		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global gimbal state based only from accelerometer readings (rad)
+		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering (rad)
+		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering (rad)
 
-		self.smpl_time = 0.05		# 10 ms frequency of sampling time
+		self.smpl_time = 0.01		# 1 ms frequency of sampling time
 		self.P_k_k = np.matrix([[0,0,0],[0,0,0],[0,0,0]])
 
 		self.plot_object = plotting.visual()
@@ -134,12 +135,13 @@ class gimbal_driver(threading.Thread):
 			
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev_gryo)		# Performs integration to get true state from gyro
 			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
-                        print(gyro_state*2*3.142/360, accel_state)
-			# est_state = math.mean(gyro_state, accel_state)							# Take the average state
+			est_state = (gyro_state*2*pi/360 + accel_state)/ 2							# Take the average state
+			est_state[-1] *= 2                                                              # Yaw reading follows gyro
+	                print(gyro_state*2*pi/360, est_state)
 			# x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
 
 			self.__access_global_var(glob=self.global_state_gyro, update=gyro_state, thrd_name=threading.current_thread().getName())
-			# self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
+			self.__access_global_var(glob=self.global_state_accel, update=accel_state, thrd_name=threading.current_thread().getName())
 			# self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
 			# self.P_k_k = P_update
                         run_time = time.time() - prev_time

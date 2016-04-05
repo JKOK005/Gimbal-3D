@@ -101,10 +101,10 @@ def get_state_accel(accel_reading):
 	assert type(accel_reading) is np.ndarray
 	A_x = accel_reading[0]; A_y = accel_reading[1]; A_z = accel_reading[2]
 
-	roll = -atan(A_x / sqrt(A_y^2 + A_z^2))
-	pitch = atan(A_y / sqrt(A_x^2 + A_z^2))
+	roll = -atan(A_x / sqrt(A_y**2 + A_z**2))
+	pitch = atan(A_y / sqrt(A_x**2 + A_z**2))
 
-	return np.array([pitch, roll])
+	return np.array([pitch, roll, 0])
 
 def kalman_filter(F, B, R, Q, u_k, x_km1_km1, z_k):
 	"""
