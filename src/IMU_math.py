@@ -104,7 +104,7 @@ def get_state_accel(accel_reading):
 	roll = -atan(A_x / sqrt(A_y**2 + A_z**2))
 	pitch = atan(A_y / sqrt(A_x**2 + A_z**2))
 
-	return np.array([pitch, roll])
+	return np.array([pitch, roll, 0])
 
 def kalman_filter(F, B, R, Q, u_k, x_km1_km1, z_k):
 	"""
