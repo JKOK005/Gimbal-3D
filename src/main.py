@@ -25,6 +25,16 @@ We link all thread modules together using global variables with locks
 The PID control mitigates the error which is defined as the descrepancy between the Gimbal's current state and the desired state
 (which we assume to be perfectly horizontal). 
 
+The axis of the IMU is defined as such:
+Positive angles are calculated using the right hand rule 
+
+-----------					  ^
+|		  |					 / \
+|		  |		  			  |	 X (roll)
+|		  |				      |
+| (plugs) |				<---- o  Z(out of plane - Yaw)
+-----------			Y (pitch)
+
 Dependencies:
 
 User input:
@@ -195,7 +205,7 @@ class gimbal_driver(threading.Thread):
                 """
                 Performs integrative process based on sampling time 
                 """
-                pass
+                return IMU.get_state_accel(accel_reading)
 
 	def __get_state_from_kalman(self, z_k, u_k):
                 """ 
