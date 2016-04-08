@@ -1,12 +1,11 @@
+#define LEDPIN 13
+#define msgSize 24
+
 float pitch_err;   // Error variables from the raspberry
 float yaw_err;
 float roll_err;
-char result;
-String container = ""; 
-const char check_first = '$';
-const char check_last = '@';
-char tmp[20];
-bool flag = 0;
+char container[msgSize]; 
+byte Size;
 
 void setup() {
   Serial.begin(9600);
@@ -18,17 +17,16 @@ void loop() {
   // If no input yet, wait till something is available
   
   if(Serial.available() > 0){
-    container = Serial.readStringUntil('@');
-    Serial.println(container);
-    flag = 1;
-   } 
-
-  if(flag){
-    digitalWrite(13,HIGH);
-    delay(1000);
-    digitalWrite(13,LOW);
-    }
-
+    serialAvailable();
+    Size = Serial.readBytes(container, msgSize -1);
+    discardReading();
+    parseReading(container);
+//    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
+//    Serial.println(yaw_err);
+   }
+ else{
+    serialWaiting();
+  } 
 
   ////////////// Implement further code here ////////////////
   ///                                                     ///
@@ -38,53 +36,65 @@ void loop() {
   }
 
 
-void readSerialInput(){
-  // Expect sample data from raspberry to be: $ Pitch=<pitch> ; Roll=<roll> ; Yaw=<yaw> ; @
+void parseReading(char* container){
+  // Expect sample data from raspberry to be: Pitch=<pitch>;Roll=<roll>;Yaw=<yaw>;@
   // Parses the serial input of tilt angles from the raspberry and assigns the values to pitch / roll / yaw errors
-  String smplWord = "";
-  String smplValue = "";
-  do{result = Serial.read();}
-  while(result != check_first);
+  char* command = strtok(container, ";");
+  char result;
+  
+  while(command != NULL){
+    char* separator = strchr(command, ':');  // Splits each reading to individual components 
+    if(separator != 0){
+      *separator = 0;
+      float value = extractFloat(++separator);
+      result = *command;
 
-  for(int i=0; i <3; i++){
-      moveToChar(' ');                  // Moves to angle reading
-      smplWord = readTillChar('=');         // Reads the type of tilt
-      smplValue = readTillChar(';');        // Reads the value of the tilt
-
-      switch(smplWord[0]){
+      switch(result){
         case 'P':
-          pitch_err = smplValue.toFloat();
+          pitch_err = value;
           break;
 
         case 'R':
-          roll_err = smplValue.toFloat();
+          roll_err = value;
           break;
 
         case 'Y':
-          yaw_err = smplValue.toFloat();
-        }   
+          yaw_err = value;
+        }
+      }
+    command = strtok(NULL, ";");
+//    Serial.println(command);
+  }
+}
+
+void serialAvailable(){
+  // Turns on when processing serial inputs
+  digitalWrite(LEDPIN, HIGH);
+  delay(100);
+  }
+
+void serialWaiting(){
+  // Turns on when processing serial inputs
+  digitalWrite(LEDPIN, LOW);
+  delay(100);
+  }
+  
+float extractFloat(char* ptr){
+  // Gets the float data from the separator
+  String tmp = "";
+
+  while(*ptr != NULL){
+    tmp += *ptr;        // Float digit terminates at NULL
+    ptr++;
     }
+ Serial.println(tmp);
+ return tmp.toFloat();
+}
 
-  moveToChar('@');                      // Moves to end of message
-  return;
+void discardReading(){
+  // Discard the next set of readings from the serial buffer
+  Serial.readStringUntil('@');
+  Serial.read();
+  delay(100);
   }
 
-
-void moveToChar(char stopper){
-  // Moves result pointer to specified stopper
-    while(result != stopper){result = Serial.read();}
-  }
-
-
-String readTillChar(char stopper){
-  // Moves result pointer to specified stopper while returning everything scanned in the process as a string
-  // White spaces are ignored since we want to read a continuous string of message
-  String returnString = "";
-
-  while(result != stopper){
-    result = Serial.read();
-    if(result == ' ') continue;         // Ignores white spaces
-    returnString += result;
-    }
-  return returnString; 
-  }

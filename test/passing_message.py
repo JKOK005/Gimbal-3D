@@ -6,12 +6,12 @@ time.sleep(1)
 switcher = True
 
 try:
-	for i in range(20):
+	for i in range(40):
 		if(switcher):
-			ser.write(b'@HellofromPython')
+			ser.write(b'P:1.234;R:2.001;Y:3.653@')		# MUST limit float to 3 dp and in Radians
 			time.sleep(1)
 		else:
-			ser.write(b'@Arduinotester')
+			ser.write(b'P:12.34;R:9.001;Y:6.592@')
 			time.sleep(1)
 		switcher = not switcher
 	# R = ser.readline()
