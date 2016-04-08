@@ -16,37 +16,19 @@ void setup() {
 void loop() {
   // Reads the serial monitor for the inputs from raspberry pi
   // If no input yet, wait till something is available
-//  result = ' '; int i = 0;
   
   if(Serial.available() > 0){
-////    result = Serial.read();
-////    container[i]= result;
-////    Serial.println(container);
-////    i++;
-////    delay(100);
     container = Serial.readStringUntil('@');
-    container.trim("\r\n");
-//    container += result;
+    Serial.println(container);
     flag = 1;
-   } // Polls for serial availability
+   } 
 
   if(flag){
     digitalWrite(13,HIGH);
-    Serial.println(container);
     delay(1000);
     digitalWrite(13,LOW);
     }
-//  
-//  Serial.println(container);  
-//  result = Serial.read();
-//  Serial.println(result);
-//  delay(500);
-//  delay(1000);
-//  readSerialInput();  
-//  dtostrf(pitch_err, 4, 4, tmp);
-//  delay(5000);
-//  
-//  Serial.print(tmp);
+
 
   ////////////// Implement further code here ////////////////
   ///                                                     ///

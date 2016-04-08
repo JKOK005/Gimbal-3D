@@ -6,7 +6,7 @@ time.sleep(1)
 switcher = True
 
 try:
-	for i in range(10):
+	for i in range(20):
 		if(switcher):
 			ser.write(b'@HellofromPython')
 			time.sleep(1)
@@ -28,9 +28,9 @@ try:
 		# R = ser.readline()
 		# print(R)
 	while(True):
-		R = ser.read(20)
+		R = ser.readline()
 		ser.flush()
-		print(str(R) + " Python")
+		print(str(R))
 		time.sleep(1)
 
 except KeyboardInterrupt:
