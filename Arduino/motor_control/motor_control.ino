@@ -1,20 +1,52 @@
 float pitch_err;   // Error variables from the raspberry
 float yaw_err;
 float roll_err;
-char result; 
+char result;
+String container = ""; 
 const char check_first = '$';
 const char check_last = '@';
+char tmp[20];
+bool flag = 0;
 
 void setup() {
   Serial.begin(9600);
+  pinMode(13, OUTPUT);
   }
 
 void loop() {
   // Reads the serial monitor for the inputs from raspberry pi
   // If no input yet, wait till something is available
+//  result = ' '; int i = 0;
   
-  while(!Serial.available()) // Polls for serial availability
-  readSerialInput();  
+  if(Serial.available() > 0){
+////    result = Serial.read();
+////    container[i]= result;
+////    Serial.println(container);
+////    i++;
+////    delay(100);
+    container = Serial.readStringUntil('@');
+    container.trim("\r\n");
+//    container += result;
+    flag = 1;
+   } // Polls for serial availability
+
+  if(flag){
+    digitalWrite(13,HIGH);
+    Serial.println(container);
+    delay(1000);
+    digitalWrite(13,LOW);
+    }
+//  
+//  Serial.println(container);  
+//  result = Serial.read();
+//  Serial.println(result);
+//  delay(500);
+//  delay(1000);
+//  readSerialInput();  
+//  dtostrf(pitch_err, 4, 4, tmp);
+//  delay(5000);
+//  
+//  Serial.print(tmp);
 
   ////////////// Implement further code here ////////////////
   ///                                                     ///
@@ -29,7 +61,6 @@ void readSerialInput(){
   // Parses the serial input of tilt angles from the raspberry and assigns the values to pitch / roll / yaw errors
   String smplWord = "";
   String smplValue = "";
-  
   do{result = Serial.read();}
   while(result != check_first);
 
