@@ -53,15 +53,19 @@ class gimbal_driver(threading.Thread):
 	gimbal_driver class that the user calls to initialize all necessary threads and start the operation.
 	"""
 	def __init__(self):
+		# Global readings
 		self.global_IMU_reading 	= {"reading": None, "val":{"type":np.ndarray, "len":6}, "lock":threading.Lock()}	        # Global IMU state reading for gyro and accelerometer
 		self.global_state_gyro 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global gimbal state based only from Gyro readings (deg)
 		self.global_state_accel		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global gimbal state based only from accelerometer readings (rad)
 		self.desired_state 	        = {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global user desired sate of gimbal after filtering (rad)
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering (rad)
 
-		self.smpl_time = 0.01												# 1 ms frequency of sampling time
-		self.P_k_k = [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
+		# Setup
+		self.smpl_time 	= 0.01												# 1 ms frequency of sampling time
+		self.P_k_k 		= [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
+		self.com_port	= "COM3"	# Port read by arduino
 
+		# Plotting setup
 		self.plot_object = plotting.visual()
 		self.__capture_bias_readings()
 
@@ -103,7 +107,6 @@ class gimbal_driver(threading.Thread):
 			prev_time = time.time()
 			update = IMU.get_IMU_reading() - self.IMU_bias
 			self.__access_global_var(glob=self.global_IMU_reading, update=update, thrd_name=threading.current_thread().getName())
-			# print self.__access_global_var(glob=self.global_IMU_reading, thrd_name=threading.current_thread().getName())
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
@@ -134,8 +137,8 @@ class gimbal_driver(threading.Thread):
 			
 			gyro_state = self.__get_state_from_gyro(gyro_readings, state_prev)		# Performs integration to get true state from gyro
 			accel_state = self.__get_state_from_accel(accel_readings)				# Performs trigo to get true state from accelerometer
-			est_state = (gyro_state + accel_state)/ 2							# Take the average state
-			est_state[-1] *= 2                                                              # Yaw reading follows gyro
+			est_state = (0.1*gyro_state + 0.9*accel_state)							# Take the average state
+			est_state[-1] *= 10                                                              # Yaw reading follows gyro
 
 			x_k_k, P_update = self.__get_state_from_kalman(z_k=est_state, u_k=gyro_readings)			# Apply kalman filtering
 			
@@ -160,8 +163,15 @@ class gimbal_driver(threading.Thread):
 		param: None
 		rtype: None
 		"""
+		import serial
+		ser = serial.Serial(self.com_port, baudrate=9600, timeout=5)
+		self.__send_to_buffer(ser_obj=ser, error=np([0.000,0.000,0.000]), itr=2)
+
 		while(True):
-			pass
+			true_state 		= self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
+			desired_state 	= self.__access_global_var(glob=self.desired_state, thrd_name=threading.current_thread().getName())
+			error 			= desired_state - global_true 		# Error correction for Arduino handling
+			self.__send_to_buffer(ser, error)	# Sends a series of data to the Arduino to prepare for data trasnfer
 		return		
 
 	def update_desired_state(self):
@@ -223,21 +233,37 @@ class gimbal_driver(threading.Thread):
                                 u_k: The measured gyro readings at time K
                 """
 		# IMu parameters
-		R_measure 	= 0.03	# Measurement noise variance for Roll / Pitch / Yaw
-		Q_angle	 	= 0.001	# Accelerometer bias in X / Y / Z
-		Q_gyro	 	= 0.003	# Gyro bias in Roll / Pitch / Yaw
+		R_measure 	= 0.03		# Measurement noise variance for Roll / Pitch / Yaw
+		Q_angle	 	= 0.001		# Accelerometer bias in X / Y / Z
+		Q_gyro	 	= 0.003		# Gyro bias in Roll / Pitch / Yaw
 
 		# Kalman filtering parameters
 		F = np.matrix([[1,-self.smpl_time],[0,1]])		# State transition matrix
 		B = np.matrix([[self.smpl_time],[0]])	
 
-		"""Start Kalman filtering from here onwards"""
-		Q_matrix 		= np.matrix([[Q_angle,0],[0,Q_gyro]])
-		drift 			= self.IMU_drift_rate
+		#Start Kalman filtering from here onwards
+		Q_matrix 			= np.matrix([[Q_angle,0],[0,Q_gyro]])
+		drift 				= self.IMU_drift_rate
 		true_state_km1 		= self.__access_global_var(glob=self.global_true_state, update=None, thrd_name=None)
-		P_km1_km1 		= self.P_k_k
+		P_km1_km1 			= self.P_k_k
 		
 		return IMU.kalman_filter(F, B, R_measure, Q_matrix, u_k, drift, true_state_km1, z_k, P_km1_km1)
+
+	def __send_to_buffer(self, ser_obj, error, itr=1):
+		"""
+		Sends a series of data to initialize the arduino for further data transfer
+		If the arduino receives data, a blinking light would show (based on our code)
+
+		param: 	ser_obj: serial object
+				error  : The error to correct as np.ndarray type
+				itr    : The number of times to send the error
+
+		rtype: None
+		"""
+		msg = "P:{0};R:{1};Y{2}@".format(error[0], error[1], error[2])
+		for i in range(itr):
+			ser_obj.write(bytes(msg, 'utf-8'))
+		return
 
 	def __capture_bias_readings(self):
 		"""

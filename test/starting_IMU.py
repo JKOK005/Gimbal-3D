@@ -15,12 +15,25 @@ def read_word(adr):
 	val = (high << 8) + low
 	return val
 
+def read_word_B(adr):
+	low = bus.read_byte_data(address, adr)
+	high = bus.read_byte_data(address, adr+1)
+	val = (high << 8) + low
+	return val
+
 def read_word_2c(adr):
 	val= read_word(adr)
 	if (val >= 0x8000):
 		return - ((65535 - val) + 1)
 	else:
 		return val
+
+def read_word_3c(adr):
+	val= read_word_B(adr)
+	if (val >= 0x8000):
+		return - ((65535 - val) + 1)
+	else:
+		return val 
 
 #Now wake the 6050 up as it starts in sleep mode
 bus.write_byte_data(address, power_mgmt_1, 0)
@@ -65,4 +78,7 @@ while True:
 	print "gyro_yout: ", gyro_yout, " scaled: %.3f" %gyro_yout_scaled
 	print "gyro_zout: ", gyro_zout, " scaled: %.3f" %gyro_zout_scaled
 
+	mag_zout = read_word_2c(0x07) 
+
+	print("mag_zout", mag_zout)
 	time.sleep(0.5)

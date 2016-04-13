@@ -6,6 +6,27 @@ float yaw_err;
 float roll_err;
 char container[msgSize]; 
 byte Size;
+int increment;
+const word pitchMotorPin1 = 9;      // Pitch motor pins
+const word pitchMotorPin2 = 10;
+const word pitchMotorPin3 = 11;
+const word pwmPin1 = 5;
+const float gimbalMaxReading = 919;
+const float angleResolution = 2*3.142 / gimbalMaxReading;     // Angular resolution across 2*pi
+
+int pwmSin[]= {0,1,2,4,6,8,12,15,19,24,29,34,40,
+               46,52,59,66,73,80,88,95,103,111,119,
+              127,135,143,151,159,166,174,181,188,
+              195,202,208,214,220,225,230,235,239,
+              242,246,248,250,252,253,254,255,254,
+              253,252,250,248,246,242,239,235,230,
+              225,220,214,208,202,195,188,181,174,
+              166,159,151,143,135,127,119,111,103,
+              95,88,80,73,66,59,52,46,40,34,29,24,
+              19,15,12,8,6,4,2,1,0};              // array of PWM duty values - sine function
+              
+int arraySize = sizeof(pwmSin) -1;                // Goes from index 0 to arraySize
+int pitchStepA = 0; int pitchStepB = (int) (arraySize /3); int pitchStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 
 void setup() {
   Serial.begin(9600);
@@ -17,12 +38,13 @@ void loop() {
   // If no input yet, wait till something is available
   
   if(Serial.available() > 0){
-    serialAvailable();
+    signalAvailable();
     Size = Serial.readBytes(container, msgSize -1);
-    discardReading();
+//    discardReading();
     parseReading(container);
-//    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
-//    Serial.println(yaw_err);
+    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
+    Serial.println(yaw_err);
+    movePitchMotor();
    }
  else{
     serialWaiting();
@@ -67,7 +89,7 @@ void parseReading(char* container){
   }
 }
 
-void serialAvailable(){
+void signalAvailable(){
   // Turns on when processing serial inputs
   digitalWrite(LEDPIN, HIGH);
   delay(100);
@@ -87,7 +109,7 @@ float extractFloat(char* ptr){
     tmp += *ptr;        // Float digit terminates at NULL
     ptr++;
     }
- Serial.println(tmp);
+// Serial.println(tmp);
  return tmp.toFloat();
 }
 
@@ -98,3 +120,49 @@ void discardReading(){
   delay(100);
   }
 
+void movePitchMotor(){
+  // Function to move the mmotor to correct for pitch, roll, yaw errors
+  float currentAngle = readCurrentAngle();
+  float deltaAngle = pitch_err - currentAngle;
+  Serial.println(deltaAngle);
+  while(abs(deltaAngle) > angleResolution){
+    if(deltaAngle > 0){increment = 1;}    // Move CW 
+    else{increment = -1;}
+      
+  pitchStepA = checkLimits(pitchStepA + 4*increment);   
+  pitchStepB = checkLimits(pitchStepB + 4*increment);   
+  pitchStepC = checkLimits(pitchStepC + 4*increment);
+
+  analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
+  analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
+  analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
+  
+  currentAngle = readCurrentAngle();                    // Resample reading
+  deltaAngle = pitch_err - currentAngle;
+    }
+  }
+
+float readCurrentAngle(){
+  // Reads the current angle from the connection 
+  // pwmPin1 var connected to PWM pin of the motor
+  float val = (float) pulseIn(pwmPin1, LOW);
+  return (float) mapfloat(val, 0.0, gimbalMaxReading, 0, 2*3.142);
+  }
+
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+ return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
+}
+
+int checkLimits(int currentStep){
+  // Function checks whether the current step goes beyond the limit and pegs it to the limit
+  if(currentStep > arraySize){
+    return currentStep - arraySize -1;
+    }
+  else if(currentStep < 0){
+    return arraySize + currentStep +1;
+    }
+  else{
+    return currentStep;
+    }
+  }
