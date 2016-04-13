@@ -78,7 +78,7 @@ class gimbal_driver(threading.Thread):
 		""" 
 		self.IMU_poller_trd 		= threading.Thread(target=obj.update_IMU_reading, name="IMU_poller")
 		self.filtering_trd 			= threading.Thread(target=obj.update_true_state, name="filter_thread")
-		# self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
+			self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
 		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd]#, self.signal_trd, self.desired_state_trd]
@@ -160,6 +160,8 @@ class gimbal_driver(threading.Thread):
 		Function polls for changes in global_true_state. It then sends a signal to the arduino to turn the motor based on
 		the error betweent global_true_state and the desired state (roll / pitch / yaw) of the gimbal.
 
+		Transformations are applied to the tilted camera frame to obtain the corrected tilt angles
+
 		param: None
 		rtype: None
 		"""
@@ -168,10 +170,13 @@ class gimbal_driver(threading.Thread):
 		self.__send_to_buffer(ser_obj=ser, error=np([0.000,0.000,0.000]), itr=2)
 
 		while(True):
+            prev_time = time.time()
 			true_state 		= self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
 			desired_state 	= self.__access_global_var(glob=self.desired_state, thrd_name=threading.current_thread().getName())
 			error 			= desired_state - global_true 		# Error correction for Arduino handling
 			self.__send_to_buffer(ser, error)	# Sends a series of data to the Arduino to prepare for data trasnfer
+			run_time = time.time() - prev_time
+			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 		return		
 
 	def update_desired_state(self):
