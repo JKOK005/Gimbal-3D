@@ -39,3 +39,4 @@ while True:
         print accel_xout, accel_yout, accel_zout
 
 	time.sleep(1)
+
