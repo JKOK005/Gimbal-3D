@@ -1,5 +1,6 @@
 #define LEDPIN 13
 #define msgSize 24
+#define pi  3.142
 
 float pitch_err;   // Error variables from the raspberry
 float yaw_err;
@@ -8,22 +9,22 @@ char container[msgSize];
 byte Size;
 int increment;
 
-const word pitchMotorPin1 = 1;      // Pitch motor control pins
-const word pitchMotorPin2 = 2;
-const word pitchMotorPin3 = 3;
-const word rollMotorPin1 = 4;
-const word rollMotorPin2 = 5;
-const word rollMotorPin3 = 6;
-const word yawMotorPin1 = 7;
-const word yawMotorPin2 = 8;
-const word yawMotorPin3 = 9;
-const word pwmPitchPin = 10;        // pwm reading Pin
-const word pwmRollPin = 11;
-const word pwmYawPin = 12;
+const word pitchMotorPin1 = 2;      // Pitch motor control pins
+const word pitchMotorPin2 = 3;
+const word pitchMotorPin3 = 4;
+const word rollMotorPin1 = 5;
+const word rollMotorPin2 = 6;
+const word rollMotorPin3 = 7;
+const word yawMotorPin1 = 8;
+const word yawMotorPin2 = 9;
+const word yawMotorPin3 = 10;
+const word pwmPitchPin = 11;        // pwm reading Pin
+const word pwmRollPin = 12;
+const word pwmYawPin = 13;
 
-const word gap = 2;
+const word gap = 4;
 const float gimbalMaxReading = 919;
-const float angleResolution = 2*3.142 / gimbalMaxReading;     // Angular resolution across 2*pi
+const float angleResolution = 0.10;     // Angular resolution across 2*pi
 
 int pwmSin[]= {0,1,2,4,6,8,12,15,19,24,29,34,40,
               46,52,59,66,73,80,88,95,103,111,119,
@@ -36,15 +37,15 @@ int pwmSin[]= {0,1,2,4,6,8,12,15,19,24,29,34,40,
               95,88,80,73,66,59,52,46,40,34,29,24,
               19,15,12,8,6,4,2,1,0};              // array of PWM duty values - sine function
               
-int arraySize = sizeof(pwmSin) -1;                // Goes from index 0 to arraySize
+int arraySize = (sizeof(pwmSin)/sizeof(int)) -1;                // Goes from index 0 to arraySize
 int pitchStepA = 0; int pitchStepB = (int) (arraySize /3); int pitchStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 int rollStepA = 0; int rollStepB = (int) (arraySize /3); int rollStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 int yawStepA = 0; int yawStepB = (int) (arraySize /3); int yawStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 
-
 void setup() {
   Serial.begin(9600);
   pinMode(13, OUTPUT);
+//  Serial.print(angleResolution);
   }
 
 void loop() {
@@ -52,15 +53,15 @@ void loop() {
   // If no input yet, wait till something is available
   
   if(Serial.available() > 0){
-    signalAvailable();
+//    signalAvailable();
     Size = Serial.readBytes(container, msgSize -1);
-//    discardReading();
+    discardReading();
     parseReading(container);
-    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
+//    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
     Serial.println(yaw_err);
     movePitchMotor();         // Motor correction
-    moveRollMotor();
-    moveYawMotor();
+//    moveRollMotor();
+//    moveYawMotor();
    }
  else{
     serialWaiting();
@@ -131,24 +132,26 @@ void discardReading(){
   }
 
 void movePitchMotor(){
-  // Function to move the mmotor to correct for pitch, roll, yaw errors
-  float currentAngle = readCurrentAngle(pwmPitchPin);
-  float deltaAngle = pitch_err - currentAngle;
-  Serial.println(deltaAngle);
-  while(abs(deltaAngle) > angleResolution){
-    if(deltaAngle > 0){increment = 1;}    // Move CW 
-    else{increment = -1;}
-      
-  pitchStepA = checkLimits(pitchStepA + gap*increment);   
-  pitchStepB = checkLimits(pitchStepB + gap*increment);   
-  pitchStepC = checkLimits(pitchStepC + gap*increment);
+  // Function to move the mmotor to correct for pitch, roll, yaw errors 
+  float currentAngleNow = readCurrentAngle(pwmPitchPin);
+  float desiredAngle = currentAngleNow - pitch_err;
+  if (desiredAngle < 0){desiredAngle = 2*pi + desiredAngle;}
+  else if (desiredAngle >= 2*pi){desiredAngle = desiredAngle - 2*pi;}
+  if(pitch_err > 0){increment = 1;}            // Move CW 
+  else{increment = -1;}
 
-  analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
-  analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
-  analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
+  while(abs(currentAngleNow - desiredAngle) > angleResolution){    
+    pitchStepA = checkLimits(pitchStepA + gap*increment);   
+    pitchStepB = checkLimits(pitchStepB + gap*increment);   
+    pitchStepC = checkLimits(pitchStepC + gap*increment);
   
-  currentAngle = readCurrentAngle(pwmPitchPin);                    // Resample reading
-  deltaAngle = pitch_err - currentAngle;
+    analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
+    analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
+    analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
+    
+    currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
+//    Serial.print(pitch_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.print(" "); Serial.println(angleResolution);
+    delay(20);
     }
   }
 
@@ -161,16 +164,16 @@ void moveRollMotor(){
     if(deltaAngle > 0){increment = 1;}    // Move CW 
     else{increment = -1;}
       
-  rollStepA = checkLimits(rollStepA + gap*increment);   
-  rollStepB = checkLimits(rollStepB + gap*increment);   
-  rollStepC = checkLimits(rollStepC + gap*increment);
-
-  analogWrite(rollMotorPin1, pwmSin[rollStepA]);    // Move the pitch motor
-  analogWrite(rollMotorPin2, pwmSin[rollStepB]);
-  analogWrite(rollMotorPin3, pwmSin[rollStepC]);
+    rollStepA = checkLimits(rollStepA + gap*increment);   
+    rollStepB = checkLimits(rollStepB + gap*increment);   
+    rollStepC = checkLimits(rollStepC + gap*increment);
   
-  currentAngle = readCurrentAngle(pwmRollPin);                    // Resample reading
-  deltaAngle = roll_err - currentAngle;
+    analogWrite(rollMotorPin1, pwmSin[rollStepA]);    // Move the pitch motor
+    analogWrite(rollMotorPin2, pwmSin[rollStepB]);
+    analogWrite(rollMotorPin3, pwmSin[rollStepC]);
+    
+    currentAngle = readCurrentAngle(pwmRollPin);                    // Resample reading
+    deltaAngle = roll_err - currentAngle;
     }
   }
   
@@ -183,16 +186,16 @@ void moveYawMotor(){
     if(deltaAngle > 0){increment = 1;}    // Move CW 
     else{increment = -1;}
       
-  yawStepA = checkLimits(yawStepA + gap*increment);   
-  yawStepB = checkLimits(yawStepB + gap*increment);   
-  yawStepC = checkLimits(yawStepC + gap*increment);
-
-  analogWrite(yawMotorPin1, pwmSin[yawStepA]);    // Move the pitch motor
-  analogWrite(yawMotorPin2, pwmSin[yawStepB]);
-  analogWrite(yawMotorPin3, pwmSin[yawStepC]);
+    yawStepA = checkLimits(yawStepA + gap*increment);   
+    yawStepB = checkLimits(yawStepB + gap*increment);   
+    yawStepC = checkLimits(yawStepC + gap*increment);
   
-  currentAngle = readCurrentAngle(pwmYawPin);                    // Resample reading
-  deltaAngle = yaw_err - currentAngle;
+    analogWrite(yawMotorPin1, pwmSin[yawStepA]);    // Move the pitch motor
+    analogWrite(yawMotorPin2, pwmSin[yawStepB]);
+    analogWrite(yawMotorPin3, pwmSin[yawStepC]);
+    
+    currentAngle = readCurrentAngle(pwmYawPin);                    // Resample reading
+    deltaAngle = yaw_err - currentAngle;
     }
   }    
 
