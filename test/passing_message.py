@@ -7,14 +7,14 @@ switcher = True
 # q = ' '
 
 try:
-	for i in range(9):
+	for i in range(20):
 		if(switcher):
-			ser.write(bytes('P:0.200;R:2.931;Y:3.653@', 'utf-8'))		# MUST limit float to 3 dp and in Radians
-			time.sleep(1)
+			ser.write(bytes('P:0.40;R:2.93;Y:3.65@', 'utf-8'))		# MUST limit float to 3 dp and in Radians
 		else:
-			ser.write(bytes('P:-0.200;R:8.121;Y:6.592@', 'utf-8'))
-			time.sleep(1)
-		# switcher = not switcher
+			ser.write(bytes('P:-0.40;R:8.12;Y:-6.59@', 'utf-8'))
+		time.sleep(1)
+		ser.flush()
+		switcher = not switcher
 
 	while(True):
 		# q = input("type")
