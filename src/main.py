@@ -64,7 +64,7 @@ class gimbal_driver(threading.Thread):
 
 		self.smpl_time 	= 0.01									# 1 ms frequency of sampling time
 		self.P_k_k 		= [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
-		self.com_port	= "COM3"	# Port read by arduino
+		self.com_port	= "/dev/ttyACM0"	# Port read by arduino
 
 		# Plotting setup
 		self.plot_object = plotting.visual()
@@ -82,7 +82,7 @@ class gimbal_driver(threading.Thread):
 		self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd]#, self.signal_trd, self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd]# self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads
@@ -151,7 +151,7 @@ class gimbal_driver(threading.Thread):
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
 
-                        print(x_k_k)
+                        # print(x_k_k)
 			# Visual of Gyro readings
 			# self.plot_object.update_measured_state(gyro_state)
 			# self.plot_object.measured_state_plot()
@@ -169,13 +169,13 @@ class gimbal_driver(threading.Thread):
 		"""
 		import serial
 		ser = serial.Serial(self.com_port, baudrate=9600, timeout=5)
-		self.__send_to_buffer(ser_obj=ser, error=np([0.000,0.000,0.000]), itr=2)
+		self.__send_to_buffer(ser_obj=ser, error=np.array([0.000,0.000,0.000]), itr=2)
 
 		while(True):
             		prev_time = time.time()
 			true_state 		= self.__access_global_var(glob=self.global_true_state, thrd_name=threading.current_thread().getName())
 			desired_state 	= self.__access_global_var(glob=self.desired_state, thrd_name=threading.current_thread().getName())
-			error 			= desired_state - global_true 		# Error correction for Arduino handling
+			error 			= desired_state - true_state 		# Error correction for Arduino handling
 			self.__send_to_buffer(ser, error)	# Sends a series of data to the Arduino to prepare for data trasnfer
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
@@ -262,15 +262,15 @@ class gimbal_driver(threading.Thread):
 		If the arduino receives data, a blinking light would show (based on our code)
 
 		param: 	ser_obj: serial object
-				error  : The error to correct as np.ndarray type
-				itr    : The number of times to send the error
+		error  : The error to correct as np.ndarray type
+		itr    : The number of times to send the error
 
 		rtype: None
 		"""
 		msg = "P:{0:.3f};R:{1:.3f};Y{2:.3f}@".format(error[0], error[1], error[2])
 		for i in range(itr):
-			ser_obj.write(bytes(msg, 'utf-8'))		
-			ser.flush()
+			ser_obj.write(bytes(msg))		
+			ser_obj.flush()
 		return
 
 	def __capture_bias_readings(self):
