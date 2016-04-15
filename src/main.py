@@ -61,7 +61,7 @@ class gimbal_driver(threading.Thread):
 		self.global_true_state 		= {"reading": np.array([0,0,0]), "val":{"type":np.ndarray, "len":3}, "lock":threading.Lock()}	# Global true sate of gimbal after filtering (rad)
 
 		# Setup
-		self.smpl_time 	= 0.01												# 1 ms frequency of sampling time
+		self.smpl_time 	= 0.01													# 1 ms frequency of sampling time
 		self.P_k_k 		= [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
 		self.com_port	= "COM3"	# Port read by arduino
 
@@ -149,7 +149,7 @@ class gimbal_driver(threading.Thread):
                         run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
-                        print(est_state)
+                        print(x_k_k)
 			# Visual of Gyro readings
 			# self.plot_object.update_measured_state(gyro_state)
 			# self.plot_object.measured_state_plot()
@@ -265,9 +265,10 @@ class gimbal_driver(threading.Thread):
 
 		rtype: None
 		"""
-		msg = "P:{0};R:{1};Y{2}@".format(error[0], error[1], error[2])
+		msg = "P:{0:.3f};R:{1:.3f};Y{2:.3f}@".format(error[0], error[1], error[2])
 		for i in range(itr):
-			ser_obj.write(bytes(msg, 'utf-8'))
+			ser_obj.write(bytes(msg, 'utf-8'))		
+			ser.flush()
 		return
 
 	def __capture_bias_readings(self):
