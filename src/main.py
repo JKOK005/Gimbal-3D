@@ -81,7 +81,7 @@ class gimbal_driver(threading.Thread):
 			self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd]#, self.signal_trd, self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd]#, self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads

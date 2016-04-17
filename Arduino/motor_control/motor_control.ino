@@ -1,5 +1,5 @@
 #define LEDPIN 13
-#define msgSize 27    // Sample message will be of the form P:0.401;R:2.932;Y:3.653@ or P:-0.40;R:-8.12;Y:-6.59
+#define msgSize 30    // Sample message will be of the form P:0.401;R:2.932;Y:3.653@ or P:-0.40;R:-8.12;Y:-6.59
 #define pi  3.142
   
 float pitch_err;   // Error variables from the raspberry
@@ -53,12 +53,14 @@ void loop() {
   // If no input yet, wait till something is available
   
   if(Serial.available() > 0){
+    signalAvailable();
     memset(container, 0, sizeof(container));
     String str = Serial.readStringUntil('@');
     str.toCharArray(container, sizeof(container));
     
-//    discardReading();
+    discardReading();
     parseReading(container);
+    
     Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
     Serial.println(yaw_err);
 //    movePitchMotor();         // Motor correction
@@ -130,6 +132,7 @@ void discardReading(){
   // Discard the next set of readings from the serial buffer
 //  Serial.readBytes(container, msgSize -1);
 //  delay(100);
+  Serial.read();
   Serial.readStringUntil('@');
   delay(1);
   }
