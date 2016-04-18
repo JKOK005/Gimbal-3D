@@ -169,6 +169,10 @@ def kalman_filter(F, B, R, Q, u_k, drift, true_state_km1, z_k, P_km1_km1):
 		P_k_km1 	= F *P_km1_km1[j] *np.transpose(F) + Q
 		S_k 		= H *P_k_km1 *np.transpose(H) + R
 		K_k 		= P_k_km1 *np.transpose(H) *inv(S_k)
+		if j == 2:
+                        # x_k_km1 = 0
+                        K_k = 0
+                        
 		x_k_k 		= x_k_km1 + K_k *y_k
 		P_k_k 		= (np.identity(2) - K_k *H) *P_k_km1
 		
