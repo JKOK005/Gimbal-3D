@@ -8,6 +8,7 @@ float roll_err;
 char container[msgSize]; 
 byte Size;
 int increment;
+bool flag = 0;
 
 const word pitchMotorPin1 = 2;      // Pitch motor control pins
 const word pitchMotorPin2 = 3;
@@ -15,12 +16,8 @@ const word pitchMotorPin3 = 4;
 const word rollMotorPin1 = 5;
 const word rollMotorPin2 = 6;
 const word rollMotorPin3 = 7;
-const word yawMotorPin1 = 8;
-const word yawMotorPin2 = 9;
-const word yawMotorPin3 = 10;
 const word pwmPitchPin = 11;        // pwm reading Pin
 const word pwmRollPin = 12;
-const word pwmYawPin = 13;
 
 const word gap = 10;
 const float gimbalMaxReading = 919;
@@ -40,10 +37,9 @@ int pwmSin[]= {0,1,2,4,6,8,12,15,19,24,29,34,40,
 int arraySize = (sizeof(pwmSin)/sizeof(int)) -1;                // Goes from index 0 to arraySize
 int pitchStepA = 0; int pitchStepB = (int) (arraySize /3); int pitchStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 int rollStepA = 0; int rollStepB = (int) (arraySize /3); int rollStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
-int yawStepA = 0; int yawStepB = (int) (arraySize /3); int yawStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   pinMode(13, OUTPUT);
 //  Serial.print(angleResolution);
   }
@@ -54,18 +50,23 @@ void loop() {
   
   if(Serial.available() > 0){
     signalAvailable();            // If signal received -> Light up LED
-    memset(container, 0, sizeof(container));
-    String str = Serial.readStringUntil('@');
-    str.toCharArray(container, sizeof(container));
     
-    discardReading();
-    parseReading(container);
-//    
+    if(flag == 1){
+//      discardReading(); 
+     }
+    else{ 
+      memset(container, 0, sizeof(container));
+      String str = Serial.readStringUntil('@');
+      str.toCharArray(container, sizeof(container));
+      parseReading(container);
+      
 //    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
 //    Serial.println(yaw_err);
-    movePitchMotor();         // Motor correction
-//    moveRollMotor();
-//    moveYawMotor();
+      movePitchMotor();         // Motor correction
+//    moveRollMotor();}
+    }
+    Serial.println(flag);
+    flag = !flag;
    }
  else{
     serialWaiting();
@@ -165,9 +166,9 @@ void movePitchMotor(){
       err1 = increment*(desiredAngle - currentAnglePrev);
       err2 = increment*(currentAngleNow - currentAnglePrev);
       err3 = increment*(currentAngleNow - desiredAngle);
-//      Serial.print(yaw_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.println(" ");
-//      Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
-//      Serial.println(" ");
+      Serial.print(pitch_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.println(" ");
+      Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
+      Serial.println(" ");
       delay(10);
     }
   }
@@ -207,28 +208,6 @@ void moveRollMotor(){
     }
   }
   
-void moveYawMotor(){
-  // Function to move the mmotor to correct for pitch, roll, yaw errors
-  float currentAngle = readCurrentAngle(pwmYawPin);
-  float deltaAngle = yaw_err - currentAngle;
-  Serial.println(deltaAngle);
-  while(abs(deltaAngle) > angleResolution){
-    if(deltaAngle > 0){increment = 1;}    // Move CW 
-    else{increment = -1;}
-      
-    yawStepA = checkLimits(yawStepA + gap*increment);   
-    yawStepB = checkLimits(yawStepB + gap*increment);   
-    yawStepC = checkLimits(yawStepC + gap*increment);
-  
-    analogWrite(yawMotorPin1, pwmSin[yawStepA]);    // Move the pitch motor
-    analogWrite(yawMotorPin2, pwmSin[yawStepB]);
-    analogWrite(yawMotorPin3, pwmSin[yawStepC]);
-    
-    currentAngle = readCurrentAngle(pwmYawPin);                    // Resample reading
-    deltaAngle = yaw_err - currentAngle;
-    }
-  }    
-
 float readCurrentAngle(int pwmPin){
   // Reads the current angle from the connection 
   // pwmPin1 var connected to PWM pin of the motor
