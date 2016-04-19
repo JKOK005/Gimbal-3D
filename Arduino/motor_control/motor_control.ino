@@ -3,23 +3,21 @@
 #define pi  3.142
   
 float pitch_err;   // Error variables from the raspberry
-float yaw_err;
 float roll_err;
 char container[msgSize]; 
 byte Size;
 int increment;
-bool flag = 0;
 
-const word pitchMotorPin1 = 2;      // Pitch motor control pins
-const word pitchMotorPin2 = 3;
-const word pitchMotorPin3 = 4;
-const word rollMotorPin1 = 5;
-const word rollMotorPin2 = 6;
-const word rollMotorPin3 = 7;
-const word pwmPitchPin = 11;        // pwm reading Pin
+const word pitchMotorPin1 = 3;      // Pitch motor control pins
+const word pitchMotorPin2 = 5;
+const word pitchMotorPin3 = 6;
+const word rollMotorPin1 = 9;
+const word rollMotorPin2 = 10;
+const word rollMotorPin3 = 11;
+const word pwmPitchPin = 7;        // pwm reading Pin
 const word pwmRollPin = 12;
 
-const word gap = 10;
+const word gap = 5;
 const float gimbalMaxReading = 919;
 const float angleResolution = 0.05;     // Angular resolution across 2*pi
 
@@ -39,35 +37,25 @@ int pitchStepA = 0; int pitchStepB = (int) (arraySize /3); int pitchStepC = (int
 int rollStepA = 0; int rollStepB = (int) (arraySize /3); int rollStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(38400);
   pinMode(13, OUTPUT);
-//  Serial.print(angleResolution);
   }
 
 void loop() {
   // Reads the serial monitor for the inputs from raspberry pi
   // If no input yet, wait till something is available
-  
+  // problem is that serial data is being sent twice even though we don't input in anything. Even though the serial buffer is empty, it still prints
   if(Serial.available() > 0){
     signalAvailable();            // If signal received -> Light up LED
+    memset(container, 0, sizeof(container));
+    String str = Serial.readStringUntil('&');
+    str.toCharArray(container, sizeof(container));
+    parseReading(container);
     
-    if(flag == 1){
-//      discardReading(); 
-     }
-    else{ 
-      memset(container, 0, sizeof(container));
-      String str = Serial.readStringUntil('@');
-      str.toCharArray(container, sizeof(container));
-      parseReading(container);
-      
-//    Serial.print(pitch_err); Serial.print(" "); Serial.print(roll_err); Serial.print(" ");
-//    Serial.println(yaw_err);
-      movePitchMotor();         // Motor correction
-//    moveRollMotor();}
+    Serial.read(); Serial.read();
+//    movePitchMotor();         // Motor correction
+    moveRollMotor();
     }
-    Serial.println(flag);
-    flag = !flag;
-   }
  else{
     serialWaiting();
     }   
@@ -95,13 +83,9 @@ void parseReading(char* container){
         case 'R':
           roll_err = value;
           break;
-
-        case 'Y':
-          yaw_err = value;
         }
       }
     command = strtok(NULL, ";");
-//    Serial.println(command);
   }
 }
 
@@ -112,7 +96,7 @@ void signalAvailable(){
   }
 
 void serialWaiting(){
-  // Turns on when processing serial inputs
+  // Turns off when processing serial inputs
   digitalWrite(LEDPIN, LOW);
   delay(100);
   }
@@ -129,15 +113,6 @@ float extractFloat(char* ptr){
  return tmp.toFloat();
 }
 
-void discardReading(){
-  // Discard the next set of readings from the serial buffer
-//  Serial.readBytes(container, msgSize -1);
-//  delay(100);
-  Serial.read();
-  Serial.readStringUntil('@');
-  delay(1);
-  }
-
 void movePitchMotor(){
   // Function to move the motor to correct for pitch errors
   float currentAnglePrev, err1, err2, err3;
@@ -150,26 +125,25 @@ void movePitchMotor(){
   if(pitch_err > 0){increment = -1;}            // Move CW 
   else{increment = 1;}
  
-//  while((abs(currentAngleNow - desiredAngle) >= angleResolution)){
-    while(abs(desiredAngle - currentAngleNow) >= angleResolution){
-      if(cos(err1) >= cos(err2) && cos(err3) >= cos(err2)) break;  
-      pitchStepA = checkLimits(pitchStepA + gap*increment);   
-      pitchStepB = checkLimits(pitchStepB + gap*increment);   
-      pitchStepC = checkLimits(pitchStepC + gap*increment);
-      currentAnglePrev = currentAngleNow;
-      
-      analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
-      analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
-      analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
-      
-      currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
-      err1 = increment*(desiredAngle - currentAnglePrev);
-      err2 = increment*(currentAngleNow - currentAnglePrev);
-      err3 = increment*(currentAngleNow - desiredAngle);
-      Serial.print(pitch_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.println(" ");
-      Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
-      Serial.println(" ");
-      delay(10);
+  while(abs(desiredAngle - currentAngleNow) >= angleResolution){
+    if(cos(err1) >= cos(err2) && cos(err3) >= cos(err2)) break;  
+    pitchStepA = checkLimits(pitchStepA + gap*increment);   
+    pitchStepB = checkLimits(pitchStepB + gap*increment);   
+    pitchStepC = checkLimits(pitchStepC + gap*increment);
+    currentAnglePrev = currentAngleNow;
+    
+    analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
+    analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
+    analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
+    
+    currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
+    err1 = increment*(desiredAngle - currentAnglePrev);
+    err2 = increment*(currentAngleNow - currentAnglePrev);
+    err3 = increment*(currentAngleNow - desiredAngle);
+//    Serial.print(pitch_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.println(" ");
+//    Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
+//    Serial.println(" ");
+    delay(5);
     }
   }
 
@@ -184,28 +158,27 @@ void moveRollMotor(){
   else if (desiredAngle >= 2*pi){desiredAngle = desiredAngle - 2*pi;}
   if(roll_err > 0){increment = -1;}            // Move CW 
   else{increment = 1;}
- 
-//  while((abs(currentAngleNow - desiredAngle) >= angleResolution)){
-    while(abs(desiredAngle - currentAngleNow) >= angleResolution){
-      if(cos(err1) >= cos(err2) && cos(err3) >= cos(err2)) break;  
-      rollStepA = checkLimits(rollStepA + gap*increment);   
-      rollStepB = checkLimits(rollStepB + gap*increment);   
-      rollStepC = checkLimits(rollStepC + gap*increment);
-      currentAnglePrev = currentAngleNow;
-      
-      analogWrite(rollMotorPin1, pwmSin[rollStepA]);    // Move the roll motor
-      analogWrite(rollMotorPin2, pwmSin[rollStepB]);
-      analogWrite(rollMotorPin3, pwmSin[rollStepC]);
-      
-      currentAngleNow = readCurrentAngle(pwmRollPin);                    // Resample reading
-      err1 = increment*(desiredAngle - currentAnglePrev);
-      err2 = increment*(currentAngleNow - currentAnglePrev);
-      err3 = increment*(currentAngleNow - desiredAngle);
-      Serial.print(roll_err);Serial.print(" "); Serial.print(desiredAngle);Serial.println(" ");
-      Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
-      Serial.println(" ");
-      delay(10);
-    }
+
+  while(abs(desiredAngle - currentAngleNow) >= angleResolution){
+    if(cos(err1) >= cos(err2) && cos(err3) >= cos(err2)) break;  
+    rollStepA = checkLimits(rollStepA + gap*increment);   
+    rollStepB = checkLimits(rollStepB + gap*increment);   
+    rollStepC = checkLimits(rollStepC + gap*increment);
+    currentAnglePrev = currentAngleNow;
+    
+    analogWrite(rollMotorPin1, pwmSin[rollStepA]);    // Move the roll motor
+    analogWrite(rollMotorPin2, pwmSin[rollStepB]);
+    analogWrite(rollMotorPin3, pwmSin[rollStepC]);
+    
+    currentAngleNow = readCurrentAngle(pwmRollPin);                    // Resample reading
+    err1 = increment*(desiredAngle - currentAnglePrev);
+    err2 = increment*(currentAngleNow - currentAnglePrev);
+    err3 = increment*(currentAngleNow - desiredAngle);
+//      Serial.print(roll_err);Serial.print(" "); Serial.print(desiredAngle);Serial.println(" ");
+//      Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
+//      Serial.println(" ");
+    delay(5);
+  }
   }
   
 float readCurrentAngle(int pwmPin){
