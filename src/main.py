@@ -82,7 +82,7 @@ class gimbal_driver(threading.Thread):
 		self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd]# self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd] # self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads
@@ -148,10 +148,10 @@ class gimbal_driver(threading.Thread):
 			self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
 			self.P_k_k = P_update
                         run_time = time.time() - prev_time
-			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
+                        time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
 
-                        # print(x_k_k)
+                        print(x_k_k)
 			# Visual of Gyro readings
 			# self.plot_object.update_measured_state(gyro_state)
 			# self.plot_object.measured_state_plot()
