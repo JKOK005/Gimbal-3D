@@ -177,6 +177,11 @@ class gimbal_driver(threading.Thread):
 			desired_state 	= self.__access_global_var(glob=self.desired_state, thrd_name=threading.current_thread().getName())
 			error 			= desired_state - true_state 		# Error correction for Arduino handling
 			self.__send_to_buffer(ser, error)	# Sends a series of data to the Arduino to prepare for data trasnfer
+			
+			R = ser.readline()
+			print(ser.in_waiting)
+			print(str(R))	
+
 			run_time = time.time() - prev_time
 			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 		return		
@@ -267,7 +272,7 @@ class gimbal_driver(threading.Thread):
 
 		rtype: None
 		"""
-		msg = "P:{0:.3f};R:{1:.3f};Y{2:.3f}@".format(error[0], error[1], error[2])
+		msg = "P:#{0:.3f};R:{1:.3f}&".format(error[0], error[1])
 		for i in range(itr):
 			ser_obj.write(bytes(msg))		
 			ser_obj.flush()

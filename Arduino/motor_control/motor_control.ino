@@ -54,8 +54,9 @@ void loop() {
         c = Serial.read();}
     str.toCharArray(container, sizeof(container));
     parseReading(container);
+    Serial.print(pitch_err); Serial.println(roll_err);
 
-    movePitchMotor();         // Motor correction
+//    movePitchMotor();         // Motor correction
 //    moveRollMotor();
      }
    }
