@@ -5,9 +5,9 @@
 float pitch_err;   // Error variables from the raspberry
 float roll_err;
 char container[msgSize]; 
-byte Size;
 int increment;
-float err_sum;    // Accumulated error for PID
+
+//////////////////// Pin declaration ///////////////////////////
 
 const word pitchMotorPin1 = 3;      // Pitch motor control pins
 const word pitchMotorPin2 = 5;
@@ -18,23 +18,19 @@ const word rollMotorPin2  = 10;
 const word rollMotorPin3  = 11;
 const word pwmRollPin     = 12;     // pwm roll reading Pin
 
-const float gimbalMaxReading = 919;
-const float angleResolution = 0.05;     // Angular resolution across 2*pi
+//////////////////// PID variables /////////////////////////////
+unsigned long last_time;
+float err_sum;     // PID summation error
 
-int pwmSin[]= {0,1,2,4,6,8,12,15,19,24,29,34,40,
-              46,52,59,66,73,80,88,95,103,111,119,
-              127,135,143,151,159,166,174,181,188,
-              195,202,208,214,220,225,230,235,239,
-              242,246,248,250,252,253,254,255,254,
-              253,252,250,248,246,242,239,235,230,
-              225,220,214,208,202,195,188,181,174,
-              166,159,151,143,135,127,119,111,103,
-              95,88,80,73,66,59,52,46,40,34,29,24,
-              19,15,12,8,6,4,2,1,0};              // array of PWM duty values - sine function
+////////////////////////////////////////////////////////////////
+
+const word gimbalMaxReading = 919;
+const word angleResolution = 0.05;     // Angular resolution across 2*pi
+const int motorPinState[]={1,1,1,0,0,0};    // Square wave
               
-int arraySize = (sizeof(pwmSin)/sizeof(int)) -1;                // Goes from index 0 to arraySize
-int pitchStepA = 0; int pitchStepB = (int) (arraySize /3); int pitchStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
-int rollStepA = 0; int rollStepB = (int) (arraySize /3); int rollStepC = (int) (arraySize*2 /3);   // Stepping sequence for pitch motor
+int arraySize = (sizeof(motorPinState)/sizeof(int)) -1;        // Goes from index 0 to arraySize
+int pitchStepA = 0; int pitchStepB = 2; int pitchStepC = 4;    // Stepping sequence for pitch motor
+int rollStepA = 0; int rollStepB = 2; int rollStepC = 4;      // Stepping sequence for pitch motor
 
 void setup() {
   Serial.begin(9600);
@@ -46,16 +42,23 @@ void loop() {
   // If no input yet, wait till something is available
   // problem is that serial data is being sent twice even though we don't input in anything. Even though the serial buffer is empty, it still prints
   if(Serial.available() > 0){
+    String str="";
     signalAvailable();            // If signal received -> Light up LED
     memset(container, 0, sizeof(container));
-    String str = Serial.readStringUntil('&');
+
+    char c = Serial.read();
+    if (c =='#'){
+      c = Serial.read();
+      while(c != '&'){
+        str += c;
+        c = Serial.read();}
     str.toCharArray(container, sizeof(container));
     parseReading(container);
-    Serial.read(); Serial.read();
 
     movePitchMotor();         // Motor correction
 //    moveRollMotor();
-    }
+     }
+   }
  else{
     serialWaiting();
     }   
@@ -115,50 +118,76 @@ float extractFloat(char* ptr){
 
 void movePitchMotor(){
   // Function to move the motor to correct for pitch errors
-  unsigned long last_time = 0.0;
+  last_time = 0.0;        // Start timer at 0
+  err_sum = 0.0;          // Reset summed error
+  float in_err = -pitch_err;
+  float last_err = in_err;
   float currentAngleNow = readCurrentAngle(pwmPitchPin);
   float desiredAngle = currentAngleNow - pitch_err;
-  float in_err = desiredAngle - currentAngleNow;
-  float last_err = in_err;
   float out_err; 
- 
-  err_sum = 0.0;
+  float t_delay;
 
   if (desiredAngle < 0){desiredAngle = 2*pi + desiredAngle;}
   else if (desiredAngle >= 2*pi){desiredAngle = desiredAngle - 2*pi;}
-  while(abs(in_err) >= angleResolution){
-    // Apply PID control
-    
-    out_err = PID_controller(in_err, last_err, last_time);
-    last_time = millis();
-    
-    increment = (int) mapfloat(out_err, -pi/4, pi/4, -40.0,40.0);
-    if(increment == 0) break;
-    pitchStepA = checkLimits(pitchStepA - increment);   
-    pitchStepB = checkLimits(pitchStepB - increment);   
-    pitchStepC = checkLimits(pitchStepC - increment);
-    
-    analogWrite(pitchMotorPin1, pwmSin[pitchStepA]);    // Move the pitch motor
-    analogWrite(pitchMotorPin2, pwmSin[pitchStepB]);
-    analogWrite(pitchMotorPin3, pwmSin[pitchStepC]);
-    
-    currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
 
+  Serial.println("Debug here");
+  
+  while(abs(in_err) > angleResolution){
+    // Apply PID control
+
+    out_err = PID_controller(in_err, last_err, &err_sum, last_time);
+    last_time = millis();
+//    Serial.print(pitch_err); Serial.print(" ");
+    Serial.print(desiredAngle); Serial.print(" ");
+    Serial.print(currentAngleNow); Serial.println(" ");
+//    Serial.print(out_err); Serial.print(" ");
+    
+    t_delay = mapfloat(abs(out_err), 0, abs(pitch_err)*0.5, 0.0,99.0);
+    t_delay = max(min(t_delay, 99.0), 0.0);
+//    Serial.print(t_delay); Serial.print(" ");
+
+    if (out_err >= 0) increment = -1;
+    else increment = 1;
+//    Serial.print(increment); Serial.println(" ");
+    pitchStepA = checkLimits(pitchStepA + increment);   
+    pitchStepB = checkLimits(pitchStepB + increment);   
+    pitchStepC = checkLimits(pitchStepC + increment);
+    
+    analogWrite(pitchMotorPin1, 254 * motorPinState[pitchStepA]);    // Move the pitch motor
+    analogWrite(pitchMotorPin2, 254 * motorPinState[pitchStepB]);
+    analogWrite(pitchMotorPin3, 254 * motorPinState[pitchStepC]);
+    delay(100.0 - t_delay);
+      
+    currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
+    last_err = in_err;
     if(abs(desiredAngle - currentAngleNow) <= 2*pi - abs(desiredAngle - currentAngleNow)){in_err = desiredAngle - currentAngleNow;} 
     else if(desiredAngle < currentAngleNow){in_err = 2*pi - abs(desiredAngle - currentAngleNow);}
     else in_err = -2*pi + abs(desiredAngle - currentAngleNow);
-
-    last_err = in_err;
+    }
+    currentAngleNow = readCurrentAngle(pwmPitchPin);                    // Resample reading
     Serial.print(desiredAngle); Serial.print(" ");
-//    Serial.print(increment); Serial.print(" ");
+    Serial.print(increment); Serial.print(" ");
     Serial.println(currentAngleNow);
     Serial.println("");
-//    Serial.print(pitch_err);Serial.print(" "); Serial.print(currentAngleNow - desiredAngle);Serial.println(" ");
-//    Serial.print(currentAnglePrev);Serial.print(" "); Serial.print(currentAngleNow);Serial.print(" "); Serial.println(currentAngleNow - currentAnglePrev);
-//    Serial.println(" ");
-    delay(10);
-    }
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void moveRollMotor(){
   // Function to move the mmotor to correct for roll errors
@@ -179,9 +208,9 @@ void moveRollMotor(){
 //    rollStepC = checkLimits(rollStepC + gap*increment);
     currentAnglePrev = currentAngleNow;
     
-    analogWrite(rollMotorPin1, pwmSin[rollStepA]);    // Move the roll motor
-    analogWrite(rollMotorPin2, pwmSin[rollStepB]);
-    analogWrite(rollMotorPin3, pwmSin[rollStepC]);
+    analogWrite(rollMotorPin1,  254 * motorPinState[rollStepA]);    // Move the roll motor
+    analogWrite(rollMotorPin2,  254 * motorPinState[rollStepB]);
+    analogWrite(rollMotorPin3,  254 * motorPinState[rollStepC]);
     
     currentAngleNow = readCurrentAngle(pwmRollPin);                    // Resample reading
     err1 = increment*(desiredAngle - currentAnglePrev);
@@ -219,11 +248,12 @@ int inline checkLimits(int currentStep){
     }
   }
 
-float inline PID_controller(float in_err, float last_err, unsigned long last_time){
+float inline PID_controller(float in_err, float last_err, float *error_sum, unsigned long last_time){
   // Implementation of PID controller with gains
-  float kp, kd;
-  kp = 0.4;
-  kd = 1;
+  double Kp, Kd, Ki;
+  Kp = 0.5;
+  Kd = 1;
+  Ki = 1;
   
   unsigned long now = millis();
   float timeChange = (float)(now - last_time);
@@ -231,5 +261,7 @@ float inline PID_controller(float in_err, float last_err, unsigned long last_tim
 
   float dErr = (in_err - last_err) / timeChange;
   /*Compute PID Output*/
-  return kp * in_err + kd * dErr;
+
+  *error_sum += in_err * timeChange;
+  return Kp * in_err + Kd * dErr + *error_sum * Ki;
   }
