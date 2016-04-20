@@ -12,10 +12,10 @@ try:
 	for i in range(50):
 		now = time.time()
 		if(switcher):
-			ser.write(bytes('P:1.111;R:-1.5000&', 'utf-8'))		# MUST limit float to 3 dp and in Radians
+			ser.write(bytes('P:0.2000;R:-1.5000&', 'utf-8'))		# MUST limit float to 3 dp and in Radians
 
 		else:
-			ser.write(bytes('P:-1.111;R:1.5000&', 'utf-8'))	
+			ser.write(bytes('P:-0.723;R:1.5000&', 'utf-8'))	
 
 		counter += 1
 		# R = ser.readline()
@@ -23,9 +23,9 @@ try:
 		# print(ser.in_waiting)
 		# print(str(R))		
 		# print(str(counter) + " " + str(time.time()-now))
-		time.sleep(0.4)
-		# if counter %2 == 0:
-		switcher = not switcher
+		time.sleep(0.3)
+		if counter %2 == 0:
+			switcher = not switcher
 
 	while(True):
 		# q = input("type")
