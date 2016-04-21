@@ -64,7 +64,7 @@ class gimbal_driver(threading.Thread):
 
 		self.smpl_time 	= 0.01									# 1 ms frequency of sampling time
 		self.P_k_k 		= [np.asmatrix(np.zeros((2,2))) for i in range(3)]		# Error covariance matrix for X / Y / Z
-		self.com_port	= "/dev/ttyACM0"	# Port read by arduino
+		self.com_port	= "/dev/ttyUSB0"	# Port read by arduino
 
 		# Plotting setup
 		self.plot_object = plotting.visual()
@@ -82,7 +82,7 @@ class gimbal_driver(threading.Thread):
 		self.signal_trd 			= threading.Thread(target=obj.update_signal, name="signal_thread")
 		# self.desired_state_trd 	= threading.Thread(target=obj.update_desired_state, name="desired_state_thread")
 
-		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd]#, self.desired_state_trd]
+		self.thread_collector 	= [self.IMU_poller_trd, self.filtering_trd, self.signal_trd] # self.desired_state_trd]
 		for j in self.thread_collector:
 			j.daemon = True 				# Sets all threads to Daemon thread
 			j.start()						# Starts the running of all threads
@@ -148,7 +148,7 @@ class gimbal_driver(threading.Thread):
 			self.__access_global_var(glob=self.global_true_state, update=x_k_k, thrd_name=threading.current_thread().getName())
 			self.P_k_k = P_update
                         run_time = time.time() - prev_time
-			time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
+                        time.sleep(max(0, self.smpl_time - run_time))			# Enforces consistent sampling time of the IMU
 
 
                         # print(x_k_k)
@@ -168,7 +168,7 @@ class gimbal_driver(threading.Thread):
 		rtype: None
 		"""
 		import serial
-		ser = serial.Serial(self.com_port, baudrate=9600, timeout=5)
+		ser = serial.Serial(self.com_port, baudrate=115200, timeout=5)
 		self.__send_to_buffer(ser_obj=ser, error=np.array([0.000,0.000,0.000]), itr=2)
 
 		while(True):
@@ -179,7 +179,6 @@ class gimbal_driver(threading.Thread):
 			self.__send_to_buffer(ser, error)	# Sends a series of data to the Arduino to prepare for data trasnfer
 			
 			R = ser.readline()
-			print(ser.in_waiting)
 			print(str(R))	
 
 			run_time = time.time() - prev_time
@@ -272,7 +271,7 @@ class gimbal_driver(threading.Thread):
 
 		rtype: None
 		"""
-		msg = "P:#{0:.3f};R:{1:.3f}&".format(error[0], error[1])
+		msg = "#P:{0:.3f};R:{1:.3f}&".format(error[0], error[1])
 		for i in range(itr):
 			ser_obj.write(bytes(msg))		
 			ser_obj.flush()
