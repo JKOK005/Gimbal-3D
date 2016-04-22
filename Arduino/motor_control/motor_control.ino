@@ -68,7 +68,7 @@ void loop() {
         c = Serial.read();}
     str.toCharArray(container, sizeof(container));
     parseReading(container);
-//    Serial.print(pitch_err); Serial.println(roll_err);
+//    Serial.print(pitch_err); Serial.print(" "); Serial.println(roll_err);
 //    Serial.println(str);
 //    movePitchMotor();         // Motor correction
     moveRollMotor();
@@ -166,9 +166,9 @@ void movePitchMotor(){
     else if(desiredAngle < currentAngleNow){in_err = 2*pi - abs(desiredAngle - currentAngleNow);}
     else in_err = -2*pi + abs(desiredAngle - currentAngleNow);
     }
-    Serial.print(desiredAngle); Serial.print(" ");
-    Serial.println(currentAngleNow);
-    Serial.println("");
+//    Serial.print(desiredAngle); Serial.print(" ");
+//    Serial.println(currentAngleNow);
+//    Serial.println("");
   }
 
 
