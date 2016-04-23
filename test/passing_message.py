@@ -12,10 +12,10 @@ try:
 	for i in range(60):
 		now = time.time()
 		if(switcher):
-			ser.write(bytes('#P:0.100;R:-0.300&', 'utf-8'))		# MUST limit float to 3 dp and in Radians
+			ser.write(bytes('#P:0.400;R:-0.300&', 'utf-8'))		# MUST limit float to 3 dp and in Radians
 
 		else:
-			ser.write(bytes('#P:-0.100;R:0.300&', 'utf-8'))	
+			ser.write(bytes('#P:-0.400;R:0.300&', 'utf-8'))	
 
 		counter += 1
 		# R = ser.readline()
