@@ -9,11 +9,13 @@ This repository contains:
 
   2) Source code for running the Gimbal 
 
+
 This repository containts code developed in:
 
   1) Python
 
   2) C (Arduino)
+
 
 To launch the code, navigate to '/src' and use:
 ```python
